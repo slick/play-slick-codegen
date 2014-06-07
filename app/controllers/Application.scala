@@ -9,6 +9,8 @@ import play.api.Play.current
 
 import views._
 import models._
+import models.auto_generated.Models._
+import FormMappings._
 
 /**
  * Manage a database of computers
@@ -24,11 +26,11 @@ object Application extends Controller {
    */ 
   val computerForm = Form(
     mapping(
-      "id" -> optional(longNumber),
       "name" -> nonEmptyText,
-      "introduced" -> optional(date("yyyy-MM-dd")),
-      "discontinued" -> optional(date("yyyy-MM-dd")),
-      "company" -> optional(longNumber)
+      "introduced" -> optional(sqlDate("yyyy-MM-dd")),
+      "discontinued" -> optional(sqlDate("yyyy-MM-dd")),
+      "company" -> optional(number),
+      "id" -> optional(number)
     )(Computer.apply)(Computer.unapply)
   )
   
@@ -58,7 +60,7 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def edit(id: Long) = DBAction { implicit rs =>
+  def edit(id: Int) = DBAction { implicit rs =>
     Computers.findById(id).map { computer =>
       Ok(html.editForm(id, computerForm.fill(computer), Companies.options))
     }.getOrElse(NotFound)
@@ -69,7 +71,7 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def update(id: Long) = DBAction { implicit rs =>
+  def update(id: Int) = DBAction { implicit rs =>
     computerForm.bindFromRequest.fold(
       formWithErrors => BadRequest(html.editForm(id, formWithErrors, Companies.options)),
       computer => {
@@ -102,7 +104,7 @@ object Application extends Controller {
   /**
    * Handle computer deletion.
    */
-  def delete(id: Long) = DBAction { implicit rs =>
+  def delete(id: Int) = DBAction { implicit rs =>
     Computers.delete(id)
     Home.flashing("success" -> "Computer has been deleted")
   }
