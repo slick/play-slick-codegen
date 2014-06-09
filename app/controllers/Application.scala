@@ -11,6 +11,7 @@ import views._
 import models._
 import models.auto_generated.Models._
 import FormMappings._
+import views.html.helper._
 
 /**
  * Manage a database of computers
@@ -20,19 +21,6 @@ object Application extends Controller {
    * This result directly redirect to the application home.
    */
   val Home = Redirect(routes.Application.list(0, 2, ""))
-  
-  /**
-   * Describe the computer form (used in both edit and create screens).
-   */ 
-  val computerForm = Form(
-    mapping(
-      "name" -> nonEmptyText,
-      "introduced" -> optional(sqlDate("yyyy-MM-dd")),
-      "discontinued" -> optional(sqlDate("yyyy-MM-dd")),
-      "company" -> optional(number),
-      "id" -> optional(number)
-    )(Computer.apply)(Computer.unapply)
-  )
   
   // -- Actions
 
@@ -62,7 +50,7 @@ object Application extends Controller {
    */
   def edit(id: Int) = DBAction { implicit rs =>
     Computers.findById(id).map { computer =>
-      Ok(html.editForm(id, computerForm.fill(computer), Companies.options))
+      Ok(html.editForm(id, ComputersForm.form.fill(computer), Companies.options))
     }.getOrElse(NotFound)
   }
   
@@ -72,7 +60,7 @@ object Application extends Controller {
    * @param id Id of the computer to edit
    */
   def update(id: Int) = DBAction { implicit rs =>
-    computerForm.bindFromRequest.fold(
+    ComputersForm.form.bindFromRequest.fold(
       formWithErrors => BadRequest(html.editForm(id, formWithErrors, Companies.options)),
       computer => {
         Computers.update(id, computer)
@@ -85,14 +73,14 @@ object Application extends Controller {
    * Display the 'new computer form'.
    */
   def create = DBAction { implicit rs =>
-    Ok(html.createForm(computerForm, Companies.options))
+    Ok(html.createForm(ComputersForm.form, Companies.options))
   }
   
   /**
    * Handle the 'new computer form' submission.
    */
   def save = DBAction { implicit rs =>
-    computerForm.bindFromRequest.fold(
+    ComputersForm.form.bindFromRequest.fold(
       formWithErrors => BadRequest(html.createForm(formWithErrors, Companies.options)),
       computer => {
         Computers.insert(computer)

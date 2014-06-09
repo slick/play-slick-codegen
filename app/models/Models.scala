@@ -7,6 +7,8 @@ import play.api.db.slick.Config.driver.simple._
 import scala.slick.lifted.Tag
 import java.sql.Timestamp
 
+object ModelLabels extends auto_generated.Models.ModelLabels
+
 case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
   lazy val prev = Option(page - 1).filter(_ >= 0)
   lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)

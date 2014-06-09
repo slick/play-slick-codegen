@@ -6,6 +6,7 @@ import play.api.db.slick._
 import play.api.Play.current
 import java.sql.Date
 import slick.jdbc.StaticQuery.interpolation
+import java.sql.SQLException
 
 object Global extends GlobalSettings {
 
@@ -21,11 +22,11 @@ object InitialData {
   def parseDate(s:String) = new java.sql.Date(new SimpleDateFormat("yyyy-MM-dd").parse(s).getTime)
 
   def insert(): Unit = {
-    DB.withSession { implicit s: Session =>
+    DB.withTransaction { implicit s: Session =>
       try{
         Computers.count
       } catch {
-        case _ =>
+        case _:SQLException =>
           sql"runscript from 'conf/schema.sql'".as[Int].first
       }
       if (Computers.count == 0) {
@@ -71,7 +72,8 @@ object InitialData {
           Company("Texas Instruments", Option(40)),
           Company("HTC Corporation", Option(41)),
           Company("Research In Motion", Option(42)),
-          Company("Samsung Electronics", Option(43))).foreach(Companies.insert)
+          Company("Samsung Electronics", Option(43))
+        ).foreach(Companies.insert)
 
         Seq(
           Computer("MacBook Pro 15.4 inch", None, None, Option(1), Option(1)),
@@ -604,7 +606,7 @@ object InitialData {
           Computer("Barnes & Noble nook", Option(parseDate("2009-10-20")), None, None, Option(528)),
           Computer("SAM Coupé", None, None, None, Option(529)),
           Computer("HTC Dream", Option(parseDate("2008-10-22")), None, Option(41), Option(530)),
-          Computer("Samsung Galaxy Tab", Option(parseDate("2010-09-02")), None, Option(43), Option(531)),
+          //Computer("Samsung Galaxy Tab", Option(parseDate("2010-09-02")), None, Option(43), Option(531)),
           Computer("BlackBerry PlayBook", Option(parseDate("2010-09-27")), None, Option(42), Option(532)),
           Computer("Tianhe-I", None, None, None, Option(533)),
           Computer("Kno", None, None, None, Option(534)),
@@ -647,7 +649,10 @@ object InitialData {
           Computer("Lenovo Thinkpad Edge 11", None, None, Option(36), Option(571)),
           Computer("Dell Vostro", None, None, None, Option(572)),
           Computer("Gateway LT3103U", Option(parseDate("2008-01-01")), None, None, Option(573)),
-          Computer("iPhone 4S", Option(parseDate("2011-10-14")), None, Option(1), Option(574))).foreach(Computers.insert)
+          Computer("iPhone 4S", Option(parseDate("2011-10-14")), None, Option(1), Option(574))).foreach(co => try{
+            Computers.insert(co)
+          } catch { case e:Exception => throw new Exception(co.toString + e.getMessage) }
+          )
       }
     }
   }

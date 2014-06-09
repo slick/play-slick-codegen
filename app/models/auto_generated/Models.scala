@@ -9,6 +9,24 @@ object Models extends {
 trait Models {
   val profile: scala.slick.driver.JdbcProfile
   import profile.simple._
+  class ModelLabels{
+    object Company{
+      def singular = "Company"
+      def plural   = "Companies"
+      def name: String = "Name"
+      def id: String = "Id"
+    }
+    object Computer{
+      def singular = "Computer"
+      def plural   = "Computers"
+      def name: String = "Name"
+      def introduced: String = "Introduced"
+      def discontinued: String = "Discontinued"
+      def companyId: String = "Company id"
+      def id: String = "Id"
+    }  
+  }
+  
   import scala.slick.model.ForeignKeyAction
   // NOTE: GetResult mappers for plain SQL are only generated for tables where Slick knows how to map the types of all columns.
   import scala.slick.jdbc.{GetResult => GR}
@@ -40,6 +58,27 @@ trait Models {
   }
   /** Collection-like TableQuery object for table companies */
   lazy val companies = new TableQuery(tag => new Companies(tag))
+  import views.html.helper._
+  import play.api.data.Form
+  import play.api.data.Forms._
+  import play.api.i18n.Lang
+  import models._
+  object CompaniesForm{
+    val form = Form(
+      mapping(
+        "name" -> nonEmptyText,
+        "id" -> optional(number)
+      )(Company.apply)(Company.unapply)
+    )
+    // ArrayBuffer()
+    def allInputs(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      Inputs.name(form)    
+    )
+    object Inputs{
+      def name(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Company.name)
+      def id(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Company.id)
+    }
+  }
   
   /** Entity class storing rows of table computers
    *  @param name Database column NAME 
@@ -71,7 +110,39 @@ trait Models {
     val companyId: Column[Option[Int]] = column[Option[Int]]("COMPANY_ID")
     /** Database column ID AutoInc, PrimaryKey */
     val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
+    
+    /** Foreign key referencing companies (database name CONSTRAINT_AE) */
+    lazy val companiesFk = foreignKey("CONSTRAINT_AE", companyId, companies)(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
   }
   /** Collection-like TableQuery object for table computers */
   lazy val computers = new TableQuery(tag => new Computers(tag))
+  import views.html.helper._
+  import play.api.data.Form
+  import play.api.data.Forms._
+  import play.api.i18n.Lang
+  import models._
+  object ComputersForm{
+    val form = Form(
+      mapping(
+        "name" -> nonEmptyText,
+        "introduced" -> optional(sqlDate("yyyy-MM-dd")),
+        "discontinued" -> optional(sqlDate("yyyy-MM-dd")),
+        "companyId" -> optional(number),
+        "id" -> optional(number)
+      )(Computer.apply)(Computer.unapply)
+    )
+    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
+    def allInputs(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      Inputs.name(form),
+      Inputs.introduced(form),
+      Inputs.discontinued(form)    
+    )
+    object Inputs{
+      def name(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Computer.name)
+      def introduced(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> ModelLabels.Computer.introduced)
+      def discontinued(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> ModelLabels.Computer.discontinued)
+      def companyId(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> ModelLabels.Computer.companyId)
+      def id(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Computer.id)
+    }
+  }
 }
