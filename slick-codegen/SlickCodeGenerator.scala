@@ -14,13 +14,17 @@ object SlickCodeGenerator extends App{
   scala.util.Try(path.listFiles().filter(_.getName.endsWith(".scala")) foreach { _.delete() })
   
   class SlickCodeGenerator(val model: Model) extends SourceCodeGenerator(model: Model){ gen =>
+    override def packageCode(profile: String, pkg: String, container:String) = code
     override def code = {
       s"""
+package models.auto_generated
+import play.api.db.slick.Config.driver.simple._
 import views.html.helper._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.i18n.Lang
 import models._
+import scala.slick.model.ForeignKeyAction
 
 object Model{
   def all = byName.values
@@ -28,8 +32,7 @@ object Model{
     ${indent(indent(tables.map(t => "\"" + t.EntityType.name + "\" -> " + t.TableClass.name).mkString(",\n")))}
   )
 }
-
-      """.trim + "\n\n" + super.code
+      """.trim + "\n\n" + tables.map(_.code.mkString("\n")).mkString("\n\n")
     }
     override def tableName = _ match {
       case "COMPANY" => "Companies"
@@ -37,10 +40,14 @@ object Model{
     }
     override def entityName = _.toCamelCase
     override def Table = new Table(_){
+      override def PlainSqlMapper = new PlainSqlMapper{
+        override def enabled = false
+      }
       override def autoIncLastAsOption = true
       override def TableValue = new TableValue{
-        //override def enabled = false
+        override def enabled = false
         override def rawName = super.rawName.head.toString.toLowerCase + super.rawName.tail
+        override def code = s"object $name extends TableQuery(tag => new ${TableClass.name}(tag))"
       }
       override def code = {
         def input(c: Column) = s"""

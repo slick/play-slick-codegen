@@ -9,7 +9,7 @@ import play.api.Play.current
 
 import views._
 import models._
-import models.auto_generated.Models._
+import models.auto_generated._
 import FormMappings._
 import views.html.helper._
 

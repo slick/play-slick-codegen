@@ -10,7 +10,7 @@ import play.api.data.Form
 import views.html.helper._
 import play.api.i18n.Lang
 
-import auto_generated.Models._
+import auto_generated._
 
 trait Model[E,T]{//} <: Table[E]]{
   def form: Form[E]
@@ -33,6 +33,8 @@ case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
   lazy val prev = Option(page - 1).filter(_ >= 0)
   lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
 }
+object companies extends TableQuery(tag => new Companies(tag))
+object computers extends TableQuery(tag => new Computers(tag))
 
 trait CompanyModelCustomization{
   def fillFormById(id: Int)(implicit s: Session) = Companies.findById(id).map( entity =>

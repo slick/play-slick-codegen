@@ -1,7 +1,7 @@
 import java.text.SimpleDateFormat
 import play.api._
 import models._
-import models.auto_generated.Models._
+import models.auto_generated._
 import play.api.db.slick._
 import play.api.Play.current
 import java.sql.Date

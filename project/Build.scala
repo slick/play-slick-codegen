@@ -16,7 +16,7 @@ object mdeBuild extends Build {
       slick <<= slickCodeGenTask, // register manual sbt command
       sourceGenerators in Compile <+= slickCodeGenTask, // register automatic code generation on every compile, remove for only manual use
       TwirlKeys.templateImports ++= Seq(
-        "auto_generated.Models._"
+        "auto_generated._"
       )
     )
   ).dependsOn( codegenProject ).enablePlugins(PlayScala)
