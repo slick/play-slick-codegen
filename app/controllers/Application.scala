@@ -48,8 +48,13 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def edit(id: Int, modelName: String = "Computer") = DBAction { implicit rs =>
-    Model.byName(modelName).fillFormById(id).map(m => Ok(html.editForm(id,m))).getOrElse(NotFound)
+  def edit(id: Int, modelName: String) = DBAction { implicit rs =>
+    Model.byName(modelName).typed{ model =>
+      model.findById(id).map{e =>
+        val modelForm = model.form(model.playForm.fill(e))
+        Ok(html.editForm(id,modelForm))
+      }.getOrElse(NotFound)
+    }
   }
   
   /**
@@ -57,28 +62,33 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def update(id: Int) = DBAction { implicit rs =>
-    Computers.form.bindFromRequest.fold(
-      formWithErrors => BadRequest(html.editForm(id, Computers.copy(form=formWithErrors))),
-      computer => {
-        Computers.update(id, computer)
-        Home.flashing("success" -> "Computer %s has been updated".format(computer.name))
-      }
-    )
+  def write_edit(id: Int, modelName: String) = DBAction { implicit rs =>
+    Model.byName(modelName).typed{ model =>
+      model.playForm.bindFromRequest.fold(
+        formWithErrors => Left(model.form(formWithErrors)),
+        entity => {
+          model.update(id, entity)
+          Right(model.tinyDescription(entity))
+        }
+      ).fold(
+        form => BadRequest(html.editForm(id, form)),
+        tinyDescription => Home.flashing("success" -> "%s %s has been updated".format(model.labels.singular.capitalize, tinyDescription))
+      )
+    }
   }
   
   /**
    * Display the 'new computer form'.
    */
   def create = DBAction { implicit rs =>
-    Ok(html.createForm(Computers.form, Companies.options))
+    Ok(html.createForm(Computers.playForm, Companies.options))
   }
   
   /**
    * Handle the 'new computer form' submission.
    */
   def save = DBAction { implicit rs =>
-    Computers.form.bindFromRequest.fold(
+    Computers.playForm.bindFromRequest.fold(
       formWithErrors => BadRequest(html.createForm(formWithErrors, Companies.options)),
       computer => {
         Computers.insert(computer)

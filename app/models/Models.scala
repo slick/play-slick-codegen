@@ -12,22 +12,42 @@ import play.api.i18n.Lang
 
 import auto_generated._
 
+trait Entity{
+  def id: Option[Int]
+}
 trait Model[E,T]{//} <: Table[E]]{
-  def form: Form[E]
-  trait Html{
-    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-  }
+  def playForm: Form[E]
   trait Labels{
     def singular: String
     def plural: String
   }
-  def html: Html
   def labels: Labels
   //def query: TableQuery[T]
+  def form(playForm: Form[E]): ModelForm[E,T]
 
-  def fillFormById(id: Int)(implicit s: Session): Option[Model[_,_]]
+  def findById(id: Int)(implicit s: Session): Option[E]
+  def update(id: Int, entity: E)(implicit s: Session): Unit
+
+  def tinyDescription(e: E): String
+
+  /**
+    * This makes up for a limitation of Scala's type inferencer.
+    * It allows to typecheck and evaluate a block of code with
+    * multiple occurences of the same model with unknown _ types
+    * E and T. Going through this function allows the type inferencer
+    * to at least know about the identity of E and T.
+    */
+  def typed[R](body: Model[E,T] => R) = body(this)
 }
 
+trait ModelForm[E,T]{//} <: Table[E]]{
+  def playForm: Form[E]
+  def model: Model[E,T]
+  trait Html{
+    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
+  }
+  def html: Html
+}
 
 case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
   lazy val prev = Option(page - 1).filter(_ >= 0)
@@ -37,16 +57,7 @@ object companies extends TableQuery(tag => new Companies(tag))
 object computers extends TableQuery(tag => new Computers(tag))
 
 trait CompanyModelCustomization{
-  def fillFormById(id: Int)(implicit s: Session) = Companies.findById(id).map( entity =>
-    Companies.copy(form=Companies.form.fill(entity))
-  )
-    
-  /**
-   * Retrieve a computer from the id
-   * @param id
-   */
-  def findById(id: Int)(implicit s: Session): Option[Company] =
-    companies.filter(_.id === id).firstOption
+  def tinyDescription(e: Company) = e.name
 
   /**
    * Construct the Map[String,String] needed to fill a select options set
@@ -68,16 +79,7 @@ trait CompanyModelCustomization{
 }
 
 trait ComputerModelCustomization{
-  def fillFormById(id: Int)(implicit s: Session) = Computers.findById(id).map( entity =>
-    Computers.copy(form=Computers.form.fill(entity))
-  )
-
-  /**
-   * Retrieve a computer from the id
-   * @param id
-   */
-  def findById(id: Int)(implicit s: Session): Option[Computer] =
-    computers.filter(_.id === id).firstOption
+  def tinyDescription(e: Computer) = e.name
 
   /**
    * Count all computers
@@ -122,16 +124,6 @@ trait ComputerModelCustomization{
    */
   def insert(computer: Computer)(implicit s: Session) {
     computers.insert(computer)
-  }
-
-  /**
-   * Update a computer
-   * @param id
-   * @param computer
-   */
-  def update(id: Int, computer: Computer)(implicit s: Session) {
-    val computerToUpdate: Computer = computer.copy(id=Some(id))
-    computers.filter(_.id === id).update(computerToUpdate)
   }
 
   /**

@@ -18,7 +18,7 @@ object Model{
 /** Entity class storing rows of table companies
  *  @param name Database column NAME 
  *  @param id Database column ID AutoInc, PrimaryKey */
-case class Company(name: String, id: Option[Int] = None)
+case class Company(name: String, id: Option[Int] = None) extends Entity
 /** Table description of table COMPANY. Objects of this class serve as prototypes for rows in queries. */
 class Companies(tag: Tag) extends Table[Company](tag, "COMPANY") {
   def * = (name, id.?) <> (Company.tupled, Company.unapply)
@@ -30,18 +30,20 @@ class Companies(tag: Tag) extends Table[Company](tag, "COMPANY") {
   /** Database column ID AutoInc, PrimaryKey */
   val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
 }
-case class CompanyModel(form: Form[Company]) extends Model[Company,Companies] with CompanyModelCustomization{
-  val html = new Html
-  class Html extends super.Html{
-    // ArrayBuffer()
-    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      inputs.name
-    )
-    object inputs{
-      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> labels.columns.name)
-      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> labels.columns.id)
-    }
+class CompanyModel extends Model[Company,Companies] with CompanyModelCustomization{
+  val playForm = Form(
+    mapping(
+      "name" -> nonEmptyText,
+      "id" -> optional(number)
+    )(Company.apply)(Company.unapply)
+  )
+  def form(playForm: Form[Company]) = CompanyForm(playForm=playForm)
+  def findById(id: Int)(implicit s: Session): Option[Company] =
+    companies.filter(_.id === id).firstOption
+  def update(id: Int, entity: Company)(implicit s: Session) {
+    companies.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
+
   val labels = new super.Labels{
     def singular = "Company".toLowerCase
     def plural   = "Companies".toLowerCase
@@ -52,14 +54,21 @@ case class CompanyModel(form: Form[Company]) extends Model[Company,Companies] wi
   }
   final val query = TableQuery[Companies]
 }
-object Companies extends CompanyModel (
-  Form(
-    mapping(
-      "name" -> nonEmptyText,
-      "id" -> optional(number)
-    )(Company.apply)(Company.unapply)
-  )
-)
+object Companies extends CompanyModel
+case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Companies]{
+  val model = Companies
+  val html = new Html
+  class Html extends super.Html{
+    // ArrayBuffer()
+    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      inputs.name
+    )
+    object inputs{
+      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> model.labels.columns.name)
+      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> model.labels.columns.id)
+    }
+  }  
+}
 
 /** Entity class storing rows of table computers
  *  @param name Database column NAME 
@@ -67,7 +76,7 @@ object Companies extends CompanyModel (
  *  @param discontinued Database column DISCONTINUED 
  *  @param companyId Database column COMPANY_ID 
  *  @param id Database column ID AutoInc, PrimaryKey */
-case class Computer(name: String, introduced: Option[java.sql.Date], discontinued: Option[java.sql.Date], companyId: Option[Int], id: Option[Int] = None)
+case class Computer(name: String, introduced: Option[java.sql.Date], discontinued: Option[java.sql.Date], companyId: Option[Int], id: Option[Int] = None) extends Entity
 /** Table description of table COMPUTER. Objects of this class serve as prototypes for rows in queries. */
 class Computers(tag: Tag) extends Table[Computer](tag, "COMPUTER") {
   def * = (name, introduced, discontinued, companyId, id.?) <> (Computer.tupled, Computer.unapply)
@@ -88,23 +97,23 @@ class Computers(tag: Tag) extends Table[Computer](tag, "COMPUTER") {
   /** Foreign key referencing companies (database name CONSTRAINT_AE) */
   lazy val companiesFk = foreignKey("CONSTRAINT_AE", companyId, companies)(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
 }
-case class ComputerModel(form: Form[Computer]) extends Model[Computer,Computers] with ComputerModelCustomization{
-  val html = new Html
-  class Html extends super.Html{
-    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
-    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      inputs.name,
-    inputs.introduced,
-    inputs.discontinued
-    )
-    object inputs{
-      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> labels.columns.name)
-      def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> labels.columns.introduced)
-      def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> labels.columns.discontinued)
-      def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> labels.columns.companyId)
-      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> labels.columns.id)
-    }
+class ComputerModel extends Model[Computer,Computers] with ComputerModelCustomization{
+  val playForm = Form(
+    mapping(
+      "name" -> nonEmptyText,
+      "introduced" -> optional(sqlDate("yyyy-MM-dd")),
+      "discontinued" -> optional(sqlDate("yyyy-MM-dd")),
+      "companyId" -> optional(number),
+      "id" -> optional(number)
+    )(Computer.apply)(Computer.unapply)
+  )
+  def form(playForm: Form[Computer]) = ComputerForm(playForm=playForm)
+  def findById(id: Int)(implicit s: Session): Option[Computer] =
+    computers.filter(_.id === id).firstOption
+  def update(id: Int, entity: Computer)(implicit s: Session) {
+    computers.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
+
   val labels = new super.Labels{
     def singular = "Computer".toLowerCase
     def plural   = "Computers".toLowerCase
@@ -118,14 +127,23 @@ case class ComputerModel(form: Form[Computer]) extends Model[Computer,Computers]
   }
   final val query = TableQuery[Computers]
 }
-object Computers extends ComputerModel (
-  Form(
-    mapping(
-      "name" -> nonEmptyText,
-      "introduced" -> optional(sqlDate("yyyy-MM-dd")),
-      "discontinued" -> optional(sqlDate("yyyy-MM-dd")),
-      "companyId" -> optional(number),
-      "id" -> optional(number)
-    )(Computer.apply)(Computer.unapply)
-  )
-)
+object Computers extends ComputerModel
+case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Computers]{
+  val model = Computers
+  val html = new Html
+  class Html extends super.Html{
+    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
+    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      inputs.name,
+    inputs.introduced,
+    inputs.discontinued
+    )
+    object inputs{
+      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> model.labels.columns.name)
+      def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("introduced"), '_label -> model.labels.columns.introduced)
+      def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("discontinued"), '_label -> model.labels.columns.discontinued)
+      def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("companyId"), '_label -> model.labels.columns.companyId)
+      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> model.labels.columns.id)
+    }
+  }  
+}

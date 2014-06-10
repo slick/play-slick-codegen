@@ -44,6 +44,9 @@ object Model{
         override def enabled = false
       }
       override def autoIncLastAsOption = true
+      override def EntityType = new EntityType{
+        override def parents = Seq("Entity")
+      }
       override def TableValue = new TableValue{
         override def enabled = false
         override def rawName = super.rawName.head.toString.toLowerCase + super.rawName.tail
@@ -51,7 +54,7 @@ object Model{
       }
       override def code = {
         def input(c: Column) = s"""
-def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("${c.name}"), '_label -> labels.columns.${c.name})
+def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("${c.name}"), '_label -> model.labels.columns.${c.name})
           """.trim
         def formField(c: Column) = {
           val rawFieldType = c.rawType match {
@@ -68,9 +71,34 @@ def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("
         def fieldLabel(c: Column) = s"""
 def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}"
           """.trim
-
+        val E = EntityType.name
+        val T = TableClass.name
         super.code ++ Seq(s"""
-case class ${EntityType.name}Model(form: Form[${EntityType.name}]) extends Model[${EntityType.name},${TableClass.name}] with ${EntityType.name}ModelCustomization{
+class ${E}Model extends Model[$E,$T] with ${E}ModelCustomization{
+  val playForm = Form(
+    mapping(
+      ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
+    )($E.apply)($E.unapply)
+  )
+  def form(playForm: Form[$E]) = ${E}Form(playForm=playForm)
+  def findById(id: Int)(implicit s: Session): Option[$E] =
+    ${TableValue.name}.filter(_.id === id).firstOption
+  def update(id: Int, entity: $E)(implicit s: Session) {
+    ${TableValue.name}.filter(_.id === id).update(entity.copy(id=Some(id)))
+  }
+
+  val labels = new super.Labels{
+    def singular = "$E".toLowerCase
+    def plural   = "$T".toLowerCase
+    object columns{
+      ${indent(columns.map(fieldLabel).mkString("\n"))}
+    }
+  }
+  final val query = TableQuery[$T]
+}
+object $T extends ${E}Model
+case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
+  val model = $T
   val html = new Html
   class Html extends super.Html{
     // ${model.foreignKeys.map(_.referencingColumns.head).toString}
@@ -89,23 +117,8 @@ case class ${EntityType.name}Model(form: Form[${EntityType.name}]) extends Model
     object inputs{
       ${indent(indent(indent(columns.map(input).mkString("\n"))))}
     }
-  }
-  val labels = new super.Labels{
-    def singular = "${EntityType.name}".toLowerCase
-    def plural   = "${TableClass.name}".toLowerCase
-    object columns{
-      ${indent(columns.map(fieldLabel).mkString("\n"))}
-    }
-  }
-  final val query = TableQuery[${TableClass.name}]
+  }  
 }
-object ${TableClass.name} extends ${EntityType.name}Model (
-  Form(
-    mapping(
-      ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
-    )(${EntityType.name}.apply)(${EntityType.name}.unapply)
-  )
-)
 
         """.trim)
       }

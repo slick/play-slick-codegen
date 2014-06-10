@@ -1,4 +1,4 @@
-@(id: Int, model: Model[_,_])(implicit session: play.api.db.slick.Config.driver.simple.Session)
+@(id: Int, modelForm: ModelForm[_,_])(implicit session: play.api.db.slick.Config.driver.simple.Session)
 
 @import helper._
 
@@ -6,15 +6,15 @@
 
 @main {
     
-    <h1>Edit @model.labels.singular.capitalize</h1>
+    <h1>Edit @modelForm.model.labels.singular.capitalize</h1>
     
-    @form(routes.Application.update(id)) {
+    @form(routes.Application.write_edit(id,modelForm.model.labels.singular.capitalize)) {
         
         <fieldset>
-            @model.html.allInputs
-            @{model match {
-                case _:ComputerModel => select(
-                    model.form("company"), 
+            @modelForm.html.allInputs
+            @{modelForm match {
+                case _:ComputerForm => select(
+                    modelForm.playForm("companyId"), 
                     Companies.options,
                     '_label -> "Company", '_default -> "-- Choose a company --",
                     '_showConstraints -> false
