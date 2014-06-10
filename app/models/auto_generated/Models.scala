@@ -15,17 +15,12 @@ trait Models {
   import play.api.i18n.Lang
   import models._
   
-  trait Model[T]{
-    def playForm: Form[T]
-    trait Html{
-      def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-    }
-    trait Labels{
-      def singular: String
-      def plural: String
-    }
-    def html: Html
-    def labels: Labels
+  object Model{
+    def all = byName.values
+    def byName: Map[String,Model[_,_]] = Map(
+      "Company" -> Companies,
+      "Computer" -> Computers
+    )
   }
   
   import scala.slick.model.ForeignKeyAction
@@ -59,7 +54,7 @@ trait Models {
   }
   /** Collection-like TableQuery object for table companies */
   lazy val companies = new TableQuery(tag => new Companies(tag))
-  case class CompanyModel(playForm: Form[Company]) extends Model[Company]{
+  case class CompanyModel(form: Form[Company]) extends Model[Company,Companies] with CompanyModelCustomization{
     val html = new Html
     class Html extends super.Html{
       // ArrayBuffer()
@@ -67,8 +62,8 @@ trait Models {
         inputs.name
       )
       object inputs{
-        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> labels.columns.name)
-        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> labels.columns.id)
+        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> labels.columns.name)
+        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> labels.columns.id)
       }
     }
     val labels = new super.Labels{
@@ -79,9 +74,9 @@ trait Models {
     def id: String = "Id"
       }
     }
-  
+    final val query = TableQuery[Companies]
   }
-  object CompanyModel extends CompanyModel(
+  object Companies extends CompanyModel (
     Form(
       mapping(
         "name" -> nonEmptyText,
@@ -126,7 +121,7 @@ trait Models {
   }
   /** Collection-like TableQuery object for table computers */
   lazy val computers = new TableQuery(tag => new Computers(tag))
-  case class ComputerModel(playForm: Form[Computer]) extends Model[Computer]{
+  case class ComputerModel(form: Form[Computer]) extends Model[Computer,Computers] with ComputerModelCustomization{
     val html = new Html
     class Html extends super.Html{
       // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
@@ -136,11 +131,11 @@ trait Models {
       inputs.discontinued
       )
       object inputs{
-        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> labels.columns.name)
-        def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("introduced"), '_label -> labels.columns.introduced)
-        def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("discontinued"), '_label -> labels.columns.discontinued)
-        def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("companyId"), '_label -> labels.columns.companyId)
-        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> labels.columns.id)
+        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> labels.columns.name)
+        def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> labels.columns.introduced)
+        def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> labels.columns.discontinued)
+        def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> labels.columns.companyId)
+        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> labels.columns.id)
       }
     }
     val labels = new super.Labels{
@@ -154,9 +149,9 @@ trait Models {
     def id: String = "Id"
       }
     }
-  
+    final val query = TableQuery[Computers]
   }
-  object ComputerModel extends ComputerModel(
+  object Computers extends ComputerModel (
     Form(
       mapping(
         "name" -> nonEmptyText,

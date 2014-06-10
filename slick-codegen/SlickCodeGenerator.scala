@@ -22,18 +22,13 @@ import play.api.data.Forms._
 import play.api.i18n.Lang
 import models._
 
-trait Model[T]{
-  def playForm: Form[T]
-  trait Html{
-    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-  }
-  trait Labels{
-    def singular: String
-    def plural: String
-  }
-  def html: Html
-  def labels: Labels
+object Model{
+  def all = byName.values
+  def byName: Map[String,Model[_,_]] = Map(
+    ${indent(indent(tables.map(t => "\"" + t.EntityType.name + "\" -> " + t.TableClass.name).mkString(",\n")))}
+  )
 }
+
       """.trim + "\n\n" + super.code
     }
     override def tableName = _ match {
@@ -44,11 +39,12 @@ trait Model[T]{
     override def Table = new Table(_){
       override def autoIncLastAsOption = true
       override def TableValue = new TableValue{
+        //override def enabled = false
         override def rawName = super.rawName.head.toString.toLowerCase + super.rawName.tail
       }
       override def code = {
         def input(c: Column) = s"""
-def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("${c.name}"), '_label -> labels.columns.${c.name})
+def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("${c.name}"), '_label -> labels.columns.${c.name})
           """.trim
         def formField(c: Column) = {
           val rawFieldType = c.rawType match {
@@ -67,7 +63,7 @@ def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}
           """.trim
 
         super.code ++ Seq(s"""
-case class ${EntityType.name}Model(playForm: Form[${EntityType.name}]) extends Model[${EntityType.name}]{
+case class ${EntityType.name}Model(form: Form[${EntityType.name}]) extends Model[${EntityType.name},${TableClass.name}] with ${EntityType.name}ModelCustomization{
   val html = new Html
   class Html extends super.Html{
     // ${model.foreignKeys.map(_.referencingColumns.head).toString}
@@ -94,15 +90,16 @@ case class ${EntityType.name}Model(playForm: Form[${EntityType.name}]) extends M
       ${indent(columns.map(fieldLabel).mkString("\n"))}
     }
   }
-
+  final val query = TableQuery[${TableClass.name}]
 }
-object ${EntityType.name}Model extends ${EntityType.name}Model(
+object ${TableClass.name} extends ${EntityType.name}Model (
   Form(
     mapping(
       ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
     )(${EntityType.name}.apply)(${EntityType.name}.unapply)
   )
 )
+
         """.trim)
       }
     }

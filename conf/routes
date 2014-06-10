@@ -13,7 +13,7 @@ GET     /computers/new              controllers.Application.create
 POST    /computers                  controllers.Application.save
 
 # Edit existing computer
-GET     /computers/:id              controllers.Application.edit(id:Int)
+GET     /edit/:modelName/:id        controllers.Application.edit(id:Int,modelName:String)
 POST    /computers/:id              controllers.Application.update(id:Int)
 
 # Delete a computer

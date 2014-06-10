@@ -48,10 +48,8 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def edit(id: Int) = DBAction { implicit rs =>
-    Computers.findById(id).map { computer =>
-      Ok(html.editForm(id, ComputerModel.copy(playForm=ComputerModel.playForm.fill(computer)), Companies.options))
-    }.getOrElse(NotFound)
+  def edit(id: Int, modelName: String = "Computer") = DBAction { implicit rs =>
+    Model.byName(modelName).fillFormById(id).map(m => Ok(html.editForm(id,m))).getOrElse(NotFound)
   }
   
   /**
@@ -60,8 +58,8 @@ object Application extends Controller {
    * @param id Id of the computer to edit
    */
   def update(id: Int) = DBAction { implicit rs =>
-    ComputerModel.playForm.bindFromRequest.fold(
-      formWithErrors => BadRequest(html.editForm(id, ComputerModel.copy(playForm=formWithErrors), Companies.options)),
+    Computers.form.bindFromRequest.fold(
+      formWithErrors => BadRequest(html.editForm(id, Computers.copy(form=formWithErrors))),
       computer => {
         Computers.update(id, computer)
         Home.flashing("success" -> "Computer %s has been updated".format(computer.name))
@@ -73,14 +71,14 @@ object Application extends Controller {
    * Display the 'new computer form'.
    */
   def create = DBAction { implicit rs =>
-    Ok(html.createForm(ComputerModel.playForm, Companies.options))
+    Ok(html.createForm(Computers.form, Companies.options))
   }
   
   /**
    * Handle the 'new computer form' submission.
    */
   def save = DBAction { implicit rs =>
-    ComputerModel.playForm.bindFromRequest.fold(
+    Computers.form.bindFromRequest.fold(
       formWithErrors => BadRequest(html.createForm(formWithErrors, Companies.options)),
       computer => {
         Computers.insert(computer)

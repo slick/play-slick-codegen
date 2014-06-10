@@ -1,4 +1,4 @@
-@(id: Int, model: Model[_], companies : Seq[(String, String)])
+@(id: Int, model: Model[_,_])(implicit session: play.api.db.slick.Config.driver.simple.Session)
 
 @import helper._
 
@@ -12,14 +12,15 @@
         
         <fieldset>
             @model.html.allInputs
-            
-            @select(
-                model.playForm("company"), 
-                companies,
-                '_label -> "Company", '_default -> "-- Choose a company --",
-                '_showConstraints -> false
-            )
-        
+            @{model match {
+                case _:ComputerModel => select(
+                    model.form("company"), 
+                    Companies.options,
+                    '_label -> "Company", '_default -> "-- Choose a company --",
+                    '_showConstraints -> false
+                )
+                case _ => None
+            }}
         </fieldset>
         
         <div class="actions">
