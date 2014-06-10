@@ -27,6 +27,7 @@ trait Model[E,T]{//} <: Table[E]]{
 
   def findById(id: Int)(implicit s: Session): Option[E]
   def update(id: Int, entity: E)(implicit s: Session): Unit
+  def delete(id: Int)(implicit s: Session): Unit
 
   def tinyDescription(e: E): String
 
@@ -126,11 +127,4 @@ trait ComputerModelCustomization{
     computers.insert(computer)
   }
 
-  /**
-   * Delete a computer
-   * @param id
-   */
-  def delete(id: Int)(implicit s: Session) {
-    //computers.filter(_.id === id).delete // FIXME
-  }
 }

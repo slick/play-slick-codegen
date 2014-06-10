@@ -12,6 +12,7 @@ import models._
 import models.auto_generated._
 import FormMappings._
 import views.html.helper._
+import scala.util.Try
 
 /**
  * Manage a database of computers
@@ -100,9 +101,15 @@ object Application extends Controller {
   /**
    * Handle computer deletion.
    */
-  def delete(id: Int) = DBAction { implicit rs =>
-    Computers.delete(id)
-    Home.flashing("success" -> "Computer has been deleted")
+  def delete(id: Int, modelName: String) = DBAction { implicit rs =>
+    val model = Model.byName(modelName)
+    Try{
+      model.typed{_.delete(id)}
+    }.toOption
+     .map(_ => Home.flashing("success" -> "%s has been deleted".format(model.labels.singular.capitalize)))
+     .getOrElse(
+       Home.flashing("error" -> "%s could not be deleted. Maybe due to a constraint.".format(model.labels.singular.capitalize))
+     )
   }
 
 }

@@ -13,11 +13,11 @@ GET     /computers/new              controllers.Application.create
 POST    /computers                  controllers.Application.save
 
 # Edit existing computer
-GET     /edit/:modelName/:id        controllers.Application.edit(id:Int,modelName:String)
-POST    /computers/:id              controllers.Application.write_edit(id:Int,modelName:String)
+GET     /:modelName/:id/edit        controllers.Application.edit(id:Int,modelName:String)
+POST    /:modelName/:id/edit        controllers.Application.write_edit(id:Int,modelName:String)
 
 # Delete a computer
-POST    /computers/:id/delete       controllers.Application.delete(id:Int)
+POST    /:modelName/:id/delete      controllers.Application.delete(id:Int,modelName:String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

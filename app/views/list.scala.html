@@ -28,6 +28,11 @@
             <strong>Done!</strong> @message
         </div>
     }
+    @flash.get("error").map { message =>
+        <div class="alert-message error">
+            <strong>Error!</strong> @message
+        </div>
+    }
 
     <div id="actions">
         

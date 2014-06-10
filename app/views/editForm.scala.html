@@ -30,7 +30,7 @@
         
     }
     
-    @form(routes.Application.delete(id), 'class -> "topRight") {
+    @form(routes.Application.delete(id,modelForm.model.labels.singular.capitalize), 'class -> "topRight") {
         <input type="submit" value="Delete" class="btn danger">
     }
     

@@ -43,6 +43,9 @@ class CompanyModel extends Model[Company,Companies] with CompanyModelCustomizati
   def update(id: Int, entity: Company)(implicit s: Session) {
     companies.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
+  def delete(id: Int)(implicit s: Session) {
+    companies.filter(_.id === id).delete
+  }
 
   val labels = new super.Labels{
     def singular = "Company".toLowerCase
@@ -112,6 +115,9 @@ class ComputerModel extends Model[Computer,Computers] with ComputerModelCustomiz
     computers.filter(_.id === id).firstOption
   def update(id: Int, entity: Computer)(implicit s: Session) {
     computers.filter(_.id === id).update(entity.copy(id=Some(id)))
+  }
+  def delete(id: Int)(implicit s: Session) {
+    computers.filter(_.id === id).delete
   }
 
   val labels = new super.Labels{

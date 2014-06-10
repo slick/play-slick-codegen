@@ -86,6 +86,9 @@ class ${E}Model extends Model[$E,$T] with ${E}ModelCustomization{
   def update(id: Int, entity: $E)(implicit s: Session) {
     ${TableValue.name}.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
+  def delete(id: Int)(implicit s: Session) {
+    ${TableValue.name}.filter(_.id === id).delete
+  }
 
   val labels = new super.Labels{
     def singular = "$E".toLowerCase
