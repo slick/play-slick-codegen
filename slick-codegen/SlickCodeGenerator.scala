@@ -15,21 +15,6 @@ object SlickCodeGenerator extends App{
   
   class SlickCodeGenerator(val model: Model) extends SourceCodeGenerator(model: Model){ gen =>
     override def code = {
-      def modelLabels(t:Table) = {
-        def fieldLabel(c: t.Column) = {
-          s"""
-def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}"
-          """.trim
-        }
-
-        s"""
-object ${t.EntityType.name}{
-  def singular = "${t.EntityType.name}"
-  def plural   = "${t.TableClass.name}"
-  ${indent(t.columns.map(fieldLabel).mkString("\n"))}
-}
-        """.trim
-      }
       s"""
 import views.html.helper._
 import play.api.data.Form
@@ -37,13 +22,17 @@ import play.api.data.Forms._
 import play.api.i18n.Lang
 import models._
 
-trait ModelForm[T]{
-  def form: Form[T]
-  def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-}
-
-class ModelLabels{
-  ${indent(tables.map(modelLabels).mkString("\n"))}  
+trait Model[T]{
+  def playForm: Form[T]
+  trait Html{
+    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
+  }
+  trait Labels{
+    def singular: String
+    def plural: String
+  }
+  def html: Html
+  def labels: Labels
 }
       """.trim + "\n\n" + super.code
     }
@@ -59,7 +48,7 @@ class ModelLabels{
       }
       override def code = {
         def input(c: Column) = s"""
-def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("${c.name}"), '_label -> ModelLabels.${EntityType.name}.${c.name})
+def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("${c.name}"), '_label -> labels.columns.${c.name})
           """.trim
         def formField(c: Column) = {
           val rawFieldType = c.rawType match {
@@ -73,26 +62,41 @@ def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("
           """.trim
         }
 
+        def fieldLabel(c: Column) = s"""
+def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}"
+          """.trim
+
         super.code ++ Seq(s"""
-case class ${TableClass.name}Form(form: Form[${EntityType.name}]) extends ModelForm[${EntityType.name}]{
-  // ${model.foreignKeys.map(_.referencingColumns.head).toString}
-  def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-    ${indent(indent(
-        columns
-          // not include auto inc columns
-          .filterNot(_.autoInc)
-          // not include foreign keys
-          .filterNot(c => model.foreignKeys.map(_.referencingColumns.head.name) contains c.model.name)
-          .map(_.name)
-          .map("Inputs."+_)
-          .mkString(",\n")
-    ))}    
-  )
-  object Inputs{
-    ${indent(indent(columns.map(input).mkString("\n")))}
+case class ${EntityType.name}Model(playForm: Form[${EntityType.name}]) extends Model[${EntityType.name}]{
+  val html = new Html
+  class Html extends super.Html{
+    // ${model.foreignKeys.map(_.referencingColumns.head).toString}
+    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      ${indent(indent(
+          columns
+            // not include auto inc columns
+            .filterNot(_.autoInc)
+            // not include foreign keys
+            .filterNot(c => model.foreignKeys.map(_.referencingColumns.head.name) contains c.model.name)
+            .map(_.name)
+            .map("inputs."+_)
+            .mkString(",\n")
+      ))}
+    )
+    object inputs{
+      ${indent(indent(indent(columns.map(input).mkString("\n"))))}
+    }
   }
+  val labels = new super.Labels{
+    def singular = "${EntityType.name}".toLowerCase
+    def plural   = "${TableClass.name}".toLowerCase
+    object columns{
+      ${indent(columns.map(fieldLabel).mkString("\n"))}
+    }
+  }
+
 }
-object ${TableClass.name}Form extends ${TableClass.name}Form(
+object ${EntityType.name}Model extends ${EntityType.name}Model(
   Form(
     mapping(
       ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}

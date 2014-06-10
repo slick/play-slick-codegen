@@ -15,27 +15,17 @@ trait Models {
   import play.api.i18n.Lang
   import models._
   
-  trait ModelForm[T]{
-    def form: Form[T]
-    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-  }
-  
-  class ModelLabels{
-    object Company{
-      def singular = "Company"
-      def plural   = "Companies"
-      def name: String = "Name"
-      def id: String = "Id"
+  trait Model[T]{
+    def playForm: Form[T]
+    trait Html{
+      def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
     }
-    object Computer{
-      def singular = "Computer"
-      def plural   = "Computers"
-      def name: String = "Name"
-      def introduced: String = "Introduced"
-      def discontinued: String = "Discontinued"
-      def companyId: String = "Company id"
-      def id: String = "Id"
-    }  
+    trait Labels{
+      def singular: String
+      def plural: String
+    }
+    def html: Html
+    def labels: Labels
   }
   
   import scala.slick.model.ForeignKeyAction
@@ -69,17 +59,29 @@ trait Models {
   }
   /** Collection-like TableQuery object for table companies */
   lazy val companies = new TableQuery(tag => new Companies(tag))
-  case class CompaniesForm(form: Form[Company]) extends ModelForm[Company]{
-    // ArrayBuffer()
-    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      Inputs.name    
-    )
-    object Inputs{
-      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Company.name)
-      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Company.id)
+  case class CompanyModel(playForm: Form[Company]) extends Model[Company]{
+    val html = new Html
+    class Html extends super.Html{
+      // ArrayBuffer()
+      def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+        inputs.name
+      )
+      object inputs{
+        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> labels.columns.name)
+        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> labels.columns.id)
+      }
     }
+    val labels = new super.Labels{
+      def singular = "Company".toLowerCase
+      def plural   = "Companies".toLowerCase
+      object columns{
+        def name: String = "Name"
+    def id: String = "Id"
+      }
+    }
+  
   }
-  object CompaniesForm extends CompaniesForm(
+  object CompanyModel extends CompanyModel(
     Form(
       mapping(
         "name" -> nonEmptyText,
@@ -124,22 +126,37 @@ trait Models {
   }
   /** Collection-like TableQuery object for table computers */
   lazy val computers = new TableQuery(tag => new Computers(tag))
-  case class ComputersForm(form: Form[Computer]) extends ModelForm[Computer]{
-    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
-    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      Inputs.name,
-      Inputs.introduced,
-      Inputs.discontinued    
-    )
-    object Inputs{
-      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Computer.name)
-      def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> ModelLabels.Computer.introduced)
-      def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> ModelLabels.Computer.discontinued)
-      def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> ModelLabels.Computer.companyId)
-      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Computer.id)
+  case class ComputerModel(playForm: Form[Computer]) extends Model[Computer]{
+    val html = new Html
+    class Html extends super.Html{
+      // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
+      def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+        inputs.name,
+      inputs.introduced,
+      inputs.discontinued
+      )
+      object inputs{
+        def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> labels.columns.name)
+        def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("introduced"), '_label -> labels.columns.introduced)
+        def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("discontinued"), '_label -> labels.columns.discontinued)
+        def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("companyId"), '_label -> labels.columns.companyId)
+        def id(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("id"), '_label -> labels.columns.id)
+      }
     }
+    val labels = new super.Labels{
+      def singular = "Computer".toLowerCase
+      def plural   = "Computers".toLowerCase
+      object columns{
+        def name: String = "Name"
+    def introduced: String = "Introduced"
+    def discontinued: String = "Discontinued"
+    def companyId: String = "Company id"
+    def id: String = "Id"
+      }
+    }
+  
   }
-  object ComputersForm extends ComputersForm(
+  object ComputerModel extends ComputerModel(
     Form(
       mapping(
         "name" -> nonEmptyText,
