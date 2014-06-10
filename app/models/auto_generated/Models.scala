@@ -9,6 +9,17 @@ object Models extends {
 trait Models {
   val profile: scala.slick.driver.JdbcProfile
   import profile.simple._
+  import views.html.helper._
+  import play.api.data.Form
+  import play.api.data.Forms._
+  import play.api.i18n.Lang
+  import models._
+  
+  trait ModelForm[T]{
+    def form: Form[T]
+    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
+  }
+  
   class ModelLabels{
     object Company{
       def singular = "Company"
@@ -58,27 +69,24 @@ trait Models {
   }
   /** Collection-like TableQuery object for table companies */
   lazy val companies = new TableQuery(tag => new Companies(tag))
-  import views.html.helper._
-  import play.api.data.Form
-  import play.api.data.Forms._
-  import play.api.i18n.Lang
-  import models._
-  object CompaniesForm{
-    val form = Form(
+  case class CompaniesForm(form: Form[Company]) extends ModelForm[Company]{
+    // ArrayBuffer()
+    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      Inputs.name    
+    )
+    object Inputs{
+      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Company.name)
+      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Company.id)
+    }
+  }
+  object CompaniesForm extends CompaniesForm(
+    Form(
       mapping(
         "name" -> nonEmptyText,
         "id" -> optional(number)
       )(Company.apply)(Company.unapply)
     )
-    // ArrayBuffer()
-    def allInputs(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      Inputs.name(form)    
-    )
-    object Inputs{
-      def name(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Company.name)
-      def id(form: Form[Company])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Company.id)
-    }
-  }
+  )
   
   /** Entity class storing rows of table computers
    *  @param name Database column NAME 
@@ -116,13 +124,23 @@ trait Models {
   }
   /** Collection-like TableQuery object for table computers */
   lazy val computers = new TableQuery(tag => new Computers(tag))
-  import views.html.helper._
-  import play.api.data.Form
-  import play.api.data.Forms._
-  import play.api.i18n.Lang
-  import models._
-  object ComputersForm{
-    val form = Form(
+  case class ComputersForm(form: Form[Computer]) extends ModelForm[Computer]{
+    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
+    def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
+      Inputs.name,
+      Inputs.introduced,
+      Inputs.discontinued    
+    )
+    object Inputs{
+      def name(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Computer.name)
+      def introduced(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> ModelLabels.Computer.introduced)
+      def discontinued(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> ModelLabels.Computer.discontinued)
+      def companyId(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> ModelLabels.Computer.companyId)
+      def id(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Computer.id)
+    }
+  }
+  object ComputersForm extends ComputersForm(
+    Form(
       mapping(
         "name" -> nonEmptyText,
         "introduced" -> optional(sqlDate("yyyy-MM-dd")),
@@ -131,18 +149,5 @@ trait Models {
         "id" -> optional(number)
       )(Computer.apply)(Computer.unapply)
     )
-    // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
-    def allInputs(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      Inputs.name(form),
-      Inputs.introduced(form),
-      Inputs.discontinued(form)    
-    )
-    object Inputs{
-      def name(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("name"), '_label -> ModelLabels.Computer.name)
-      def introduced(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("introduced"), '_label -> ModelLabels.Computer.introduced)
-      def discontinued(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("discontinued"), '_label -> ModelLabels.Computer.discontinued)
-      def companyId(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("companyId"), '_label -> ModelLabels.Computer.companyId)
-      def id(form: Form[Computer])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("id"), '_label -> ModelLabels.Computer.id)
-    }
-  }
+  )
 }

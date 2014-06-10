@@ -50,7 +50,7 @@ object Application extends Controller {
    */
   def edit(id: Int) = DBAction { implicit rs =>
     Computers.findById(id).map { computer =>
-      Ok(html.editForm(id, ComputersForm.form.fill(computer), Companies.options))
+      Ok(html.editForm(id, ComputersForm.copy(form=ComputersForm.form.fill(computer)), Companies.options))
     }.getOrElse(NotFound)
   }
   
@@ -61,7 +61,7 @@ object Application extends Controller {
    */
   def update(id: Int) = DBAction { implicit rs =>
     ComputersForm.form.bindFromRequest.fold(
-      formWithErrors => BadRequest(html.editForm(id, formWithErrors, Companies.options)),
+      formWithErrors => BadRequest(html.editForm(id, ComputersForm.copy(form=formWithErrors), Companies.options)),
       computer => {
         Computers.update(id, computer)
         Home.flashing("success" -> "Computer %s has been updated".format(computer.name))

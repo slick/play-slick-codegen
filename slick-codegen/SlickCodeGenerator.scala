@@ -31,6 +31,17 @@ object ${t.EntityType.name}{
         """.trim
       }
       s"""
+import views.html.helper._
+import play.api.data.Form
+import play.api.data.Forms._
+import play.api.i18n.Lang
+import models._
+
+trait ModelForm[T]{
+  def form: Form[T]
+  def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
+}
+
 class ModelLabels{
   ${indent(tables.map(modelLabels).mkString("\n"))}  
 }
@@ -48,7 +59,7 @@ class ModelLabels{
       }
       override def code = {
         def input(c: Column) = s"""
-def ${c.name}(form: Form[${EntityType.name}])(implicit handler: FieldConstructor, lang: Lang) = inputText(form("${c.name}"), '_label -> ModelLabels.${EntityType.name}.${c.name})
+def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(form("${c.name}"), '_label -> ModelLabels.${EntityType.name}.${c.name})
           """.trim
         def formField(c: Column) = {
           val rawFieldType = c.rawType match {
@@ -63,19 +74,9 @@ def ${c.name}(form: Form[${EntityType.name}])(implicit handler: FieldConstructor
         }
 
         super.code ++ Seq(s"""
-import views.html.helper._
-import play.api.data.Form
-import play.api.data.Forms._
-import play.api.i18n.Lang
-import models._
-object ${TableClass.name}Form{
-  val form = Form(
-    mapping(
-      ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
-    )(${EntityType.name}.apply)(${EntityType.name}.unapply)
-  )
+case class ${TableClass.name}Form(form: Form[${EntityType.name}]) extends ModelForm[${EntityType.name}]{
   // ${model.foreignKeys.map(_.referencingColumns.head).toString}
-  def allInputs(form: Form[${EntityType.name}])(implicit handler: FieldConstructor, lang: Lang) = Seq(
+  def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
     ${indent(indent(
         columns
           // not include auto inc columns
@@ -83,7 +84,7 @@ object ${TableClass.name}Form{
           // not include foreign keys
           .filterNot(c => model.foreignKeys.map(_.referencingColumns.head.name) contains c.model.name)
           .map(_.name)
-          .map("Inputs."+_+"(form)")
+          .map("Inputs."+_)
           .mkString(",\n")
     ))}    
   )
@@ -91,6 +92,13 @@ object ${TableClass.name}Form{
     ${indent(indent(columns.map(input).mkString("\n")))}
   }
 }
+object ${TableClass.name}Form extends ${TableClass.name}Form(
+  Form(
+    mapping(
+      ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
+    )(${EntityType.name}.apply)(${EntityType.name}.unapply)
+  )
+)
         """.trim)
       }
     }

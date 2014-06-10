@@ -1,4 +1,4 @@
-@(id: Int, computerForm: Form[Computer], companies : Seq[(String, String)])
+@(id: Int, modelForm: ModelForm[_], companies : Seq[(String, String)])
 
 @import helper._
 
@@ -11,10 +11,10 @@
     @form(routes.Application.update(id)) {
         
         <fieldset>
-            @ComputersForm.allInputs(computerForm)
+            @modelForm.allInputs
             
             @select(
-                computerForm("company"), 
+                modelForm.form("company"), 
                 companies, 
                 '_label -> "Company", '_default -> "-- Choose a company --",
                 '_showConstraints -> false
