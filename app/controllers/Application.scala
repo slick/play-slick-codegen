@@ -21,7 +21,7 @@ object Application extends Controller {
   /**
    * This result directly redirect to the application home.
    */
-  val Home = Redirect(routes.Application.list(0, 2, ""))
+  val Home = Redirect(routes.Application.list(Computers.labels.singular, 0, 2, ""))
   
   // -- Actions
 
@@ -37,9 +37,10 @@ object Application extends Controller {
    * @param orderBy Column to be sorted
    * @param filter Filter applied on computer names
    */
-  def list(page: Int, orderBy: Int, filter: String) = DBAction { implicit rs =>
+  def list(modelName: String, page: Int, orderBy: Int, filter: String) = DBAction { implicit rs =>
     Ok(html.list(
-      Computers.list(page = page, orderBy = orderBy, filter = ("%"+filter+"%")),
+      Model.byName(modelName),
+      page,
       orderBy, filter
     ))
   }
@@ -49,7 +50,7 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def edit(id: Int, modelName: String) = DBAction { implicit rs =>
+  def edit(modelName: String, id: Int) = DBAction { implicit rs =>
     Model.byName(modelName).typed{ model =>
       model.findById(id).map{e =>
         val modelForm = model.form(model.playForm.fill(e))
@@ -63,7 +64,7 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def write_edit(id: Int, modelName: String) = DBAction { implicit rs =>
+  def write_edit(modelName: String, id: Int) = DBAction { implicit rs =>
     Model.byName(modelName).typed{ model =>
       model.playForm.bindFromRequest.fold(
         formWithErrors => Left(model.form(formWithErrors)),
@@ -101,7 +102,7 @@ object Application extends Controller {
   /**
    * Handle computer deletion.
    */
-  def delete(id: Int, modelName: String) = DBAction { implicit rs =>
+  def delete(modelName: String, id: Int) = DBAction { implicit rs =>
     val model = Model.byName(modelName)
     Try{
       model.typed{_.delete(id)}

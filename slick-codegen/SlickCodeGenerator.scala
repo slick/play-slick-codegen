@@ -14,6 +14,11 @@ object SlickCodeGenerator extends App{
   scala.util.Try(path.listFiles().filter(_.getName.endsWith(".scala")) foreach { _.delete() })
   
   class SlickCodeGenerator(val model: Model) extends SourceCodeGenerator(model: Model){ gen =>
+    override def tableName = _ match {
+      case "COMPANY" => "Companies"
+      case n => n.toCamelCase+"s"
+    }
+    override def entityName = _.toCamelCase
     override def packageCode(profile: String, pkg: String, container:String) = code
     override def code = {
       s"""
@@ -28,18 +33,15 @@ import scala.slick.model.ForeignKeyAction
 
 object Model{
   def all = byName.values
-  def byName: Map[String,Model[_,_]] = Map(
-    ${indent(indent(tables.map(t => "\"" + t.EntityType.name + "\" -> " + t.TableClass.name).mkString(",\n")))}
+  def byName/*: Map[String,Model[_,_]]*/ = Map(
+    ${indent(indent(tables.map(t => "\"" + t.EntityType.name.toLowerCase + "\" -> " + tableName(t.model.name.table) ).mkString(",\n")))}
   )
 }
       """.trim + "\n\n" + tables.map(_.code.mkString("\n")).mkString("\n\n")
     }
-    override def tableName = _ match {
-      case "COMPANY" => "Companies"
-      case n => n.toCamelCase+"s"
-    }
-    override def entityName = _.toCamelCase
     override def Table = new Table(_){
+      val E = entityName(model.name.table)
+      val T = tableName(model.name.table)
       override def PlainSqlMapper = new PlainSqlMapper{
         override def enabled = false
       }
@@ -47,10 +49,18 @@ object Model{
       override def EntityType = new EntityType{
         override def parents = Seq("Entity")
       }
+      override def TableClass = new TableClass{
+        override def rawName = T+"Table"
+        override def parents = super.parents ++ Seq(s"TableBase[$E]")
+        override def body = super.body ++ Seq(Seq(s"""
+def tinyDescription = LiteralColumn("$E(") ++ id.asColumnOf[String] ++ ")"
+          """))
+        override def code = "abstract "+super.code
+      }
       override def TableValue = new TableValue{
         override def enabled = false
         override def rawName = super.rawName.head.toString.toLowerCase + super.rawName.tail
-        override def code = s"object $name extends TableQuery(tag => new ${TableClass.name}(tag))"
+        override def code = s"object $name extends TableQuery(tag => new $T(tag))"
       }
       override def code = {
         def input(c: Column) = s"""
@@ -71,10 +81,10 @@ def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playFo
         def fieldLabel(c: Column) = s"""
 def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}"
           """.trim
-        val E = EntityType.name
-        val T = TableClass.name
         super.code ++ Seq(s"""
-class ${E}Model extends Model[$E,$T] with ${E}ModelCustomization{
+class $T(tag: Tag) extends ${TableClass.name}(tag) with ${TableClass.name}Customized
+
+class ${E}Model extends SafeModel[$E,$T]{
   val playForm = Form(
     mapping(
       ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
@@ -99,7 +109,7 @@ class ${E}Model extends Model[$E,$T] with ${E}ModelCustomization{
   }
   final val query = TableQuery[$T]
 }
-object $T extends ${E}Model
+object $T extends ${E}ModelCustomized
 case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
   val model = $T
   val html = new Html

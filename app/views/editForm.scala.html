@@ -8,7 +8,7 @@
     
     <h1>Edit @modelForm.model.labels.singular.capitalize</h1>
     
-    @form(routes.Application.write_edit(id,modelForm.model.labels.singular.capitalize)) {
+    @form(routes.Application.write_edit(modelForm.model.labels.singular,id)) {
         
         <fieldset>
             @modelForm.html.allInputs
@@ -25,12 +25,12 @@
         
         <div class="actions">
             <input type="submit" value="Save" class="btn primary"> or 
-            <a href="@routes.Application.list()" class="btn">Cancel</a> 
+            <a href="@routes.Application.list(modelForm.model.labels.singular)" class="btn">Cancel</a> 
         </div>
         
     }
     
-    @form(routes.Application.delete(id,modelForm.model.labels.singular.capitalize), 'class -> "topRight") {
+    @form(routes.Application.delete(modelForm.model.labels.singular, id), 'class -> "topRight") {
         <input type="submit" value="Delete" class="btn danger">
     }
     

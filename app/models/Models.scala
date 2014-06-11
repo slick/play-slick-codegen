@@ -15,21 +15,20 @@ import auto_generated._
 trait Entity{
   def id: Option[Int]
 }
-trait Model[E,T]{//} <: Table[E]]{
+trait Model[E <: Entity,T]{
   def playForm: Form[E]
   trait Labels{
     def singular: String
     def plural: String
   }
   def labels: Labels
-  //def query: TableQuery[T]
   def form(playForm: Form[E]): ModelForm[E,T]
 
   def findById(id: Int)(implicit s: Session): Option[E]
   def update(id: Int, entity: E)(implicit s: Session): Unit
   def delete(id: Int)(implicit s: Session): Unit
 
-  def tinyDescription(e: E): String
+  def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
   /**
     * This makes up for a limitation of Scala's type inferencer.
@@ -41,7 +40,7 @@ trait Model[E,T]{//} <: Table[E]]{
   def typed[R](body: Model[E,T] => R) = body(this)
 }
 
-trait ModelForm[E,T]{//} <: Table[E]]{
+trait ModelForm[E <: Entity,T]{
   def playForm: Form[E]
   def model: Model[E,T]
   trait Html{
@@ -57,74 +56,57 @@ case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
 object companies extends TableQuery(tag => new Companies(tag))
 object computers extends TableQuery(tag => new Computers(tag))
 
-trait CompanyModelCustomization{
-  def tinyDescription(e: Company) = e.name
+trait TableBase[E] extends Table[E]{
+  def id: Column[Int]
+  def tinyDescription: Column[String]
+}
+trait ComputersTableCustomized extends ComputersTable{
+  override def tinyDescription = name
+}
+trait CompaniesTableCustomized extends CompaniesTable{
+  override def tinyDescription = name  
+}
+
+trait CompanyModelCustomized extends CompanyModel{
+  override def tinyDescription(e: Company) = e.name
+}
+
+trait ComputerModelCustomized extends ComputerModel{
+  override def tinyDescription(e: Computer) = e.name
+}
+
+trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E,T]{
+  def query: TableQuery[T]
 
   /**
    * Construct the Map[String,String] needed to fill a select options set
    */
-  def options(implicit s: Session): Seq[(String, String)] = {
-    val query = (for {
-      company <- companies
-    } yield (company.id, company.name)).sortBy(_._2)
-    query.list.map(row => (row._1.toString, row._2))
-  }
+  def options(implicit s: Session): Seq[(String, String)] =
+    query.map(r => r.id.asColumnOf[String] -> r.tinyDescription).sortBy(_._2).run
 
-  /**
-   * Insert a new company
-   * @param company
-   */
-  def insert(company: Company)(implicit s: Session) {
-    companies.insert(company)
-  }
-}
-
-trait ComputerModelCustomization{
-  def tinyDescription(e: Computer) = e.name
-
-  /**
-   * Count all computers
-   */
-  def count(implicit s: Session): Int =
-    Query(computers.length).first
-
-  /**
-   * Count computers with a filter
-   * @param filter
-   */
+  def count(implicit s: Session): Int = query.length.run
   def count(filter: String)(implicit s: Session): Int =
-    Query(computers.filter(_.name.toLowerCase like filter.toLowerCase).length).first
+    query.filter(_.tinyDescription.toLowerCase like filter.toLowerCase).length.run
 
   /**
-   * Return a page of (Computer,Company)
+   * Return a page of entities
    * @param page
    * @param pageSize
    * @param orderBy
    * @param filter
    */
-  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%")(implicit s: Session): Page[(Computer, Option[Company])] = {
+  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%")(implicit s: Session): Page[E] = {
 
     val offset = pageSize * page
-    val query =
-      (for {
-        (computer, company) <- computers leftJoin companies on (_.companyId === _.id)
-        if computer.name.toLowerCase like filter.toLowerCase()
-      } yield (computer, company.id.?, company.name.?))
-        .drop(offset)
-        .take(pageSize)
+    val q = query.filter(_.tinyDescription.toLowerCase like filter.toLowerCase()).drop(offset).take(pageSize)
 
     val totalRows = count(filter)
-    val result = query.list.map(row => (row._1, row._2.map(value => Company(row._3.get,Option(value)))))
+    val result = q.list
 
     Page(result, page, offset, totalRows)
   }
 
-  /**
-   * Insert a new computer
-   * @param computer
-   */
-  def insert(computer: Computer)(implicit s: Session) {
-    computers.insert(computer)
+  def insert(entity: E)(implicit s: Session) {
+    query.insert(entity)
   }
-
 }

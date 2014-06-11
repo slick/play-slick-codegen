@@ -9,9 +9,9 @@ import scala.slick.model.ForeignKeyAction
 
 object Model{
   def all = byName.values
-  def byName: Map[String,Model[_,_]] = Map(
-    "Company" -> Companies,
-    "Computer" -> Computers
+  def byName/*: Map[String,Model[_,_]]*/ = Map(
+    "company" -> Companies,
+    "computer" -> Computers
   )
 }
 
@@ -20,7 +20,7 @@ object Model{
  *  @param id Database column ID AutoInc, PrimaryKey */
 case class Company(name: String, id: Option[Int] = None) extends Entity
 /** Table description of table COMPANY. Objects of this class serve as prototypes for rows in queries. */
-class Companies(tag: Tag) extends Table[Company](tag, "COMPANY") {
+abstract class CompaniesTable(tag: Tag) extends Table[Company](tag, "COMPANY") with TableBase[Company] {
   def * = (name, id.?) <> (Company.tupled, Company.unapply)
   /** Maps whole row to an option. Useful for outer joins. */
   def ? = (name.?, id.?).shaped.<>({r=>import r._; _1.map(_=> Company.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
@@ -29,8 +29,14 @@ class Companies(tag: Tag) extends Table[Company](tag, "COMPANY") {
   val name: Column[String] = column[String]("NAME")
   /** Database column ID AutoInc, PrimaryKey */
   val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
+  
+  
+  def tinyDescription = LiteralColumn("Company(") ++ id.asColumnOf[String] ++ ")"
+            
 }
-class CompanyModel extends Model[Company,Companies] with CompanyModelCustomization{
+class Companies(tag: Tag) extends CompaniesTable(tag) with CompaniesTableCustomized
+
+class CompanyModel extends SafeModel[Company,Companies]{
   val playForm = Form(
     mapping(
       "name" -> nonEmptyText,
@@ -57,7 +63,7 @@ class CompanyModel extends Model[Company,Companies] with CompanyModelCustomizati
   }
   final val query = TableQuery[Companies]
 }
-object Companies extends CompanyModel
+object Companies extends CompanyModelCustomized
 case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Companies]{
   val model = Companies
   val html = new Html
@@ -81,7 +87,7 @@ case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Compan
  *  @param id Database column ID AutoInc, PrimaryKey */
 case class Computer(name: String, introduced: Option[java.sql.Date], discontinued: Option[java.sql.Date], companyId: Option[Int], id: Option[Int] = None) extends Entity
 /** Table description of table COMPUTER. Objects of this class serve as prototypes for rows in queries. */
-class Computers(tag: Tag) extends Table[Computer](tag, "COMPUTER") {
+abstract class ComputersTable(tag: Tag) extends Table[Computer](tag, "COMPUTER") with TableBase[Computer] {
   def * = (name, introduced, discontinued, companyId, id.?) <> (Computer.tupled, Computer.unapply)
   /** Maps whole row to an option. Useful for outer joins. */
   def ? = (name.?, introduced, discontinued, companyId, id.?).shaped.<>({r=>import r._; _1.map(_=> Computer.tupled((_1.get, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
@@ -98,9 +104,15 @@ class Computers(tag: Tag) extends Table[Computer](tag, "COMPUTER") {
   val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
   
   /** Foreign key referencing companies (database name CONSTRAINT_AE) */
-  lazy val companiesFk = foreignKey("CONSTRAINT_AE", companyId, companies)(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+  lazy val companiesTableFk = foreignKey("CONSTRAINT_AE", companyId, companies)(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+  
+  
+  def tinyDescription = LiteralColumn("Computer(") ++ id.asColumnOf[String] ++ ")"
+            
 }
-class ComputerModel extends Model[Computer,Computers] with ComputerModelCustomization{
+class Computers(tag: Tag) extends ComputersTable(tag) with ComputersTableCustomized
+
+class ComputerModel extends SafeModel[Computer,Computers]{
   val playForm = Form(
     mapping(
       "name" -> nonEmptyText,
@@ -133,7 +145,7 @@ class ComputerModel extends Model[Computer,Computers] with ComputerModelCustomiz
   }
   final val query = TableQuery[Computers]
 }
-object Computers extends ComputerModel
+object Computers extends ComputerModelCustomized
 case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Computers]{
   val model = Computers
   val html = new Html
