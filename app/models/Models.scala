@@ -27,6 +27,7 @@ trait Model[E <: Entity,T]{
   def findById(id: Int)(implicit s: Session): Option[E]
   def update(id: Int, entity: E)(implicit s: Session): Unit
   def delete(id: Int)(implicit s: Session): Unit
+  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%")(implicit s: Session): Page[E]
 
   def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
@@ -38,6 +39,11 @@ trait Model[E <: Entity,T]{
     * to at least know about the identity of E and T.
     */
   def typed[R](body: Model[E,T] => R) = body(this)
+  trait Html{
+    def headings: Seq[String]
+    def cells(e: E): Seq[java.io.Serializable]
+  }
+  def html: Html
 }
 
 trait ModelForm[E <: Entity,T]{

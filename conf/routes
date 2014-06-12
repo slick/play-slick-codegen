@@ -6,10 +6,10 @@
 GET     /                           controllers.Application.index
 
 # Computers list (look at the default values for pagination parameters)
-GET     /:modelName                  controllers.Application.list(modelName:String, p:Int ?= 0, s:Int ?= 2, f ?= "")
+GET     /:modelName                 controllers.Application.list(modelName:String, p:Int ?= 0, s:Int ?= 2, f ?= "")
 
 # Add computer
-GET     /computers/new              controllers.Application.create
+GET     /:modelName/new             controllers.Application.create(modelName: String)
 POST    /computers                  controllers.Application.save
 
 # Edit existing computer

@@ -82,7 +82,7 @@ object Application extends Controller {
   /**
    * Display the 'new computer form'.
    */
-  def create = DBAction { implicit rs =>
+  def create(modelName: String) = DBAction { implicit rs =>
     Ok(html.createForm(Computers.playForm, Companies.options))
   }
   

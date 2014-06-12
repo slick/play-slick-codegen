@@ -6,6 +6,7 @@ import play.api.data.Forms._
 import play.api.i18n.Lang
 import models._
 import scala.slick.model.ForeignKeyAction
+import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
@@ -62,11 +63,26 @@ class CompanyModel extends SafeModel[Company,Companies]{
     }
   }
   final val query = TableQuery[Companies]
+  override val html = new Html
+  class Html extends super.Html{
+    def headings = Seq(labels.columns.name)
+    def cells(e: Company) = {
+      def render(v: Any) = v match {
+        case None => <em> - </em>
+        case d:java.sql.Date => new java.text.SimpleDateFormat("dd MMM yyyy").format(d)
+        case v => v.toString
+      }
+      Seq[Any](e.name).map{
+        case Some(v) => render(v)
+        case v => render(v)
+      }
+    }
+  }
 }
 object Companies extends CompanyModelCustomized
 case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Companies]{
   val model = Companies
-  val html = new Html
+  override val html = new Html
   class Html extends super.Html{
     // ArrayBuffer()
     def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
@@ -144,11 +160,26 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     }
   }
   final val query = TableQuery[Computers]
+  override val html = new Html
+  class Html extends super.Html{
+    def headings = Seq(labels.columns.name, labels.columns.introduced, labels.columns.discontinued)
+    def cells(e: Computer) = {
+      def render(v: Any) = v match {
+        case None => <em> - </em>
+        case d:java.sql.Date => new java.text.SimpleDateFormat("dd MMM yyyy").format(d)
+        case v => v.toString
+      }
+      Seq[Any](e.name, e.introduced, e.discontinued).map{
+        case Some(v) => render(v)
+        case v => render(v)
+      }
+    }
+  }
 }
 object Computers extends ComputerModelCustomized
 case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Computers]{
   val model = Computers
-  val html = new Html
+  override val html = new Html
   class Html extends super.Html{
     // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
     def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(

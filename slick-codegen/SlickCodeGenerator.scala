@@ -30,6 +30,7 @@ import play.api.data.Forms._
 import play.api.i18n.Lang
 import models._
 import scala.slick.model.ForeignKeyAction
+import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
@@ -42,6 +43,12 @@ object Model{
     override def Table = new Table(_){
       val E = entityName(model.name.table)
       val T = tableName(model.name.table)
+      val dataColumns = columns
+            // not include auto inc columns
+            .filterNot(_.autoInc)
+            // not include foreign keys
+            .filterNot(c => model.foreignKeys.map(_.referencingColumns.head.name) contains c.model.name)
+
       override def PlainSqlMapper = new PlainSqlMapper{
         override def enabled = false
       }
@@ -108,20 +115,31 @@ class ${E}Model extends SafeModel[$E,$T]{
     }
   }
   final val query = TableQuery[$T]
+  override val html = new Html
+  class Html extends super.Html{
+    def headings = Seq(${dataColumns.map(_.name).map("labels.columns."+_).mkString(", ")})
+    def cells(e: $E) = {
+      def render(v: Any) = v match {
+        case None => <em> - </em>
+        case d:java.sql.Date => new java.text.SimpleDateFormat("dd MMM yyyy").format(d)
+        case v => v.toString
+      }
+      Seq[Any](${dataColumns.map(_.name).map("e."+_+"").mkString(", ")}).map{
+        case Some(v) => render(v)
+        case v => render(v)
+      }
+    }
+  }
 }
 object $T extends ${E}ModelCustomized
 case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
   val model = $T
-  val html = new Html
+  override val html = new Html
   class Html extends super.Html{
     // ${model.foreignKeys.map(_.referencingColumns.head).toString}
     def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
       ${indent(indent(
-          columns
-            // not include auto inc columns
-            .filterNot(_.autoInc)
-            // not include foreign keys
-            .filterNot(c => model.foreignKeys.map(_.referencingColumns.head.name) contains c.model.name)
+          dataColumns
             .map(_.name)
             .map("inputs."+_)
             .mkString(",\n")

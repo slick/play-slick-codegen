@@ -1,4 +1,4 @@
-@(model: Model[_,_], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
+@(model: Model[_ <: Entity,_], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
 
 @****************************************
 * Helper generating navigation links    *
@@ -20,34 +20,16 @@
 
 }
 
-@row(cpsWithCos: Seq[(Computer, Option[Company])]) = {
-    @cpsWithCos.map { 
-        case (computer, company) => {
-            <tr>
-                <td><a href="@routes.Application.edit("computer",computer.id.get)">@computer.name</a></td>
-                <td>
-                    @computer.introduced.map(_.format("dd MMM yyyy")).getOrElse { <em>-</em> }
-                </td>
-                <td>
-                    @computer.discontinued.map(_.format("dd MMM yyyy")).getOrElse { <em>-</em> }
-                </td>
-                <td>
-                    @company.map{co =>
-                        <a href="@routes.Application.edit("company",co.id.get)">@co.name</a>
-                    }.getOrElse { <em>-</em> }
-                </td>
-            </tr>
-        }
-    }
-}
+@model.typed{ m =>
 
 @defining((
-    Computers.list(page = page, orderBy = currentOrderBy, filter = ("%"+currentFilter+"%"))
-)){ case (currentPage) =>
+    m.list(page = page, orderBy = currentOrderBy, filter = ("%"+currentFilter+"%"))
+)){ currentPage =>
+@defining((currentPage.items)){ entities =>
 
 @main {
     
-    <h1>@Messages("computers.list.title", currentPage.total)</h1>
+    <h1>@currentPage.total @model.labels.plural found</h1>
 
     @flash.get("success").map { message =>
         <div class="alert-message warning">
@@ -62,35 +44,52 @@
 
     <div id="actions">
         
-        @helper.form(action=routes.Application.list(model.labels.singular.capitalize)) {
-            <input type="search" id="searchbox" name="f" value="@currentFilter" placeholder="Filter by computer name...">
+        @helper.form(action=routes.Application.list(model.labels.singular)) {
+            <input type="search" id="searchbox" name="f" value="@currentFilter" placeholder="Filter by @model.labels.singular name...">
             <input type="submit" id="searchsubmit" value="Filter by name" class="btn primary">
         }
         
-        <a class="btn success" id="add" href="@routes.Application.create()">Add a new computer</a>
+        <a class="btn success" id="add" href="@routes.Application.create(model.labels.singular)">Add a new @model.labels.singular</a>
         
     </div>
     
-    @Option(currentPage.items).filterNot(_.isEmpty).map { computers =>
-        
-        <table class="computers zebra-striped">
+    @if(entities.size > 0){
+        <table class="zebra-striped">
             <thead>
                 <tr>
-                    @header(2, "Computer name")
-                    @header(3, "Introduced")
-                    @header(4, "Discontinued")
-                    @header(5, "Company")
+                    @model.html.headings.map{ h => <th> @h </th> }
+                    @{model match {
+                        case _:Computers.type => <th>Company</th>
+                        case _ => None
+                    }}
                 </tr>
             </thead>
             <tbody>
-
-
-                @{
-                    val cps = computers
-                    val cos = companies.filter(_.id inSet cps.flatMap(_.companyId).distinct).list.map(co => co.id -> co).toMap
-                    val cpsWithCos = cps.map(cp => (cp,cos.get(cp.companyId)))
-                    row(cpsWithCos)
-            }
+                @defining((
+                    model match {
+                        case _:Computers.type => {
+                            companies.filter(_.id inSet entities.asInstanceOf[Seq[Computer]].flatMap(_.companyId).distinct).list.map(co => co.id -> co).toMap
+                        }
+                        case _ => None
+                    }
+                )){ extraData =>
+                    @entities.map{ entity =>
+                        <tr>
+                            <td><a href=@routes.Application.edit(model.labels.singular,entity.id.get).url>@m.html.cells(entity).head</a></td>
+                            @m.html.cells(entity).tail.map{ cell => <td>@cell</td> }
+                            @entity match {
+                                case computer:Computer => {
+                                    <td>
+                                        @extraData.asInstanceOf[Map[Option[Int],Company]].get(computer.companyId).map{ co =>
+                                            <a href=@routes.Application.edit("company",co.id.get)>@co.name</a>
+                                        }.getOrElse { <em>-</em> }
+                                    </td>
+                                }
+                                case _ => {}
+                            }
+                        </tr>
+                    }
+                }
 
             </tbody>
         </table>
@@ -107,7 +106,7 @@
                     </li>
                 }
                 <li class="current">
-                    <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + computers.size) of @currentPage.total</a>
+                    <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + entities.size) of @currentPage.total</a>
                 </li>
                 @currentPage.next.map { page =>
                     <li class="next">
@@ -121,14 +120,15 @@
             </ul>
         </div>
         
-    }.getOrElse {
+    } else {
         
         <div class="well">
             <em>Nothing to display</em>
         </div>
         
     }
-
         
+}
+}
 }
 }
