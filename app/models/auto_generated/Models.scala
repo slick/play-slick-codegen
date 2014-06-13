@@ -59,7 +59,7 @@ class CompanyModel extends SafeModel[Company,Companies]{
     def plural   = "Companies".toLowerCase
     object columns{
       def name: String = "Name"
-  def id: String = "Id"
+      def id: String = "Id"
     }
   }
 
@@ -160,10 +160,10 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     def plural   = "Computers".toLowerCase
     object columns{
       def name: String = "Name"
-  def introduced: String = "Introduced"
-  def discontinued: String = "Discontinued"
-  def companyId: String = "Company id"
-  def id: String = "Id"
+      def introduced: String = "Introduced"
+      def discontinued: String = "Discontinued"
+      def companyId: String = "Company id"
+      def id: String = "Id"
     }
   }
 
@@ -200,8 +200,8 @@ case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Com
     // ArrayBuffer(Column(COMPANY_ID,QualifiedName(COMPUTER,None,Some(SLICK_CODEGEN)),Int,true,Set()))
     def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
       inputs.name,
-    inputs.introduced,
-    inputs.discontinued
+      inputs.introduced,
+      inputs.discontinued
     )
     object inputs{
       def name(implicit handler: FieldConstructor, lang: Lang) = inputText(playForm("name"), '_label -> model.labels.columns.name)

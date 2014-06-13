@@ -123,7 +123,7 @@ class ${E}Model extends SafeModel[$E,$T]{
     def singular = "$E".toLowerCase
     def plural   = "$T".toLowerCase
     object columns{
-      ${indent(columns.map(fieldLabel).mkString("\n"))}
+      ${indent(indent(indent(columns.map(fieldLabel).mkString("\n"))))}
     }
   }
 
@@ -157,12 +157,12 @@ case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
   class Html extends super.Html{
     // ${model.foreignKeys.map(_.referencingColumns.head).toString}
     def allInputs(implicit handler: FieldConstructor, lang: Lang) = Seq(
-      ${indent(indent(
+      ${indent(indent(indent(
           dataColumns
             .map(_.name)
             .map("inputs."+_)
             .mkString(",\n")
-      ))}
+      )))}
     )
     object inputs{
       ${indent(indent(indent(columns.map(input).mkString("\n"))))}
