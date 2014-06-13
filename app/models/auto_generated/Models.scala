@@ -63,6 +63,9 @@ class CompanyModel extends SafeModel[Company,Companies]{
     }
   }
 
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+    
+  )
   override def tinyDescription(e: Company) = e.name
 
   val schema = Map(
@@ -167,6 +170,9 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     }
   }
 
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+    "companyId" -> Companies
+  )
   override def tinyDescription(e: Computer) = e.name
 
   val schema = Map(

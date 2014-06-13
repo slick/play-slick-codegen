@@ -26,15 +26,17 @@
         
         <fieldset>
             @modelForm.html.allInputs
-            @{modelForm match {
-                case _:ComputerForm => select(
-                    modelForm.playForm("companyId"), 
-                    Companies.options,
-                    '_label -> "Company", '_default -> "-- Choose a company --",
+
+            @{/* relationships */}
+            @modelForm.model.referencedModels.map{ case (referencingColumn,referencedModel) =>
+                @select(
+                    modelForm.playForm(referencingColumn),
+                    referencedModel.options,
+                    '_label -> referencedModel.labels.singular.capitalize,
+                    '_default -> s"-- Choose a ${referencedModel.labels.singular} --",
                     '_showConstraints -> false
                 )
-                case _ => None
-            }}
+            }
         </fieldset>
         
         <div class="actions">

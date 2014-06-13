@@ -33,6 +33,9 @@ trait Model[E <: Entity,T]{
 
   def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
+  def referencedModels: Map[String,Model[_ <: Entity,_]]
+  def options(implicit s: Session): Seq[(String, String)]
+
   /**
     * This makes up for a limitation of Scala's type inferencer.
     * It allows to typecheck and evaluate a block of code with

@@ -101,6 +101,10 @@ def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}
         def schemaColumn(c: Column) = s"""
 "${c.name}" -> ("${c.rawType}", ${c.model.nullable})
           """.trim
+
+        def referencedModel(fk: ForeignKey) = s"""
+"${fk.referencingColumns.head.name}" -> ${tableName(fk.referencedTable.model.name.table)}
+          """.trim
         super.code ++ Seq(s"""
 class $T(tag: Tag) extends ${TableClass.name}(tag)
 
@@ -128,6 +132,9 @@ class ${E}Model extends SafeModel[$E,$T]{
     }
   }
 
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+    ${indent(indent(foreignKeys.map(referencedModel).mkString(",\n")))}
+  )
   override def tinyDescription(e: $E) = e.${dataColumns.head.name}
 
   val schema = Map(
