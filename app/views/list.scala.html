@@ -29,6 +29,9 @@
 
 @main {
     
+    @Model.all.map{ m =>
+        | <a href="/@m.labels.singular">@m.labels.plural.capitalize</a>
+    }
     <h1>@currentPage.total @model.labels.plural found</h1>
 
     @flash.get("success").map { message =>

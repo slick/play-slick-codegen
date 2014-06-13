@@ -88,6 +88,10 @@ def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playFo
         def fieldLabel(c: Column) = s"""
 def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}"
           """.trim
+
+        def schemaColumn(c: Column) = s"""
+"${c.name}" -> ("${c.rawType}", ${c.model.nullable})
+          """.trim
         super.code ++ Seq(s"""
 class $T(tag: Tag) extends ${TableClass.name}(tag) with ${TableClass.name}Customized
 
@@ -114,6 +118,11 @@ class ${E}Model extends SafeModel[$E,$T]{
       ${indent(columns.map(fieldLabel).mkString("\n"))}
     }
   }
+
+  val schema = Map(
+    ${indent(indent(dataColumns.map(schemaColumn).mkString(",\n")))}
+  )
+
   final val query = TableQuery[$T]
   override val html = new Html
   class Html extends super.Html{

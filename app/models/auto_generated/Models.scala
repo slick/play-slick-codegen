@@ -62,6 +62,11 @@ class CompanyModel extends SafeModel[Company,Companies]{
   def id: String = "Id"
     }
   }
+
+  val schema = Map(
+    "name" -> ("String", false)
+  )
+
   final val query = TableQuery[Companies]
   override val html = new Html
   class Html extends super.Html{
@@ -159,6 +164,13 @@ class ComputerModel extends SafeModel[Computer,Computers]{
   def id: String = "Id"
     }
   }
+
+  val schema = Map(
+    "name" -> ("String", false),
+    "introduced" -> ("java.sql.Date", true),
+    "discontinued" -> ("java.sql.Date", true)
+  )
+
   final val query = TableQuery[Computers]
   override val html = new Html
   class Html extends super.Html{

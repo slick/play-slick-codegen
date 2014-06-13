@@ -7,6 +7,20 @@
 @main {
     
     <h1>Edit @modelForm.model.labels.singular.capitalize</h1>
+
+    <script type="text/javascript">
+        var schema = {
+            @modelForm.model.schema.map{ case (column,(tpe,nullable)) =>
+                "@column": {
+                    "required" : @if(nullable){ false } else { true }
+                    "type" : @tpe
+                }
+            }
+        }
+
+        // TODO: add jQuery validation code here
+    </script>
+
     
     @form(routes.Application.write_edit(modelForm.model.labels.singular,id)) {
         

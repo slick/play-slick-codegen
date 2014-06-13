@@ -22,6 +22,7 @@ trait Model[E <: Entity,T]{
     def plural: String
   }
   def labels: Labels
+  def schema: Map[String,(String,Boolean)]
   def form(playForm: Form[E]): ModelForm[E,T]
 
   def findById(id: Int)(implicit s: Session): Option[E]
