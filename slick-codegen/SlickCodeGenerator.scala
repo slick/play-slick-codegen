@@ -84,6 +84,7 @@ def ${c.name}(implicit handler: FieldConstructor, lang: Lang) = inputText(playFo
         def formField(c: Column) = {
           val rawFieldType = c.rawType match {
             case "Int" => "number"
+            case "String" if (c.fakeNullable || c.model.nullable) => "text"
             case "String" => "nonEmptyText"
             case "java.sql.Date" => """sqlDate("yyyy-MM-dd")"""
           }
