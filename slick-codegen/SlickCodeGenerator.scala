@@ -60,7 +60,7 @@ object Model{
         override def rawName = T+"Table"
         override def parents = super.parents ++ Seq(s"TableBase[$E]")
         override def body = super.body ++ Seq(Seq(s"""
-def tinyDescription = LiteralColumn("$E(") ++ id.asColumnOf[String] ++ ")"
+def tinyDescription = ${dataColumns.head.name}
           """))
         override def code = "abstract "+super.code
       }
@@ -68,6 +68,14 @@ def tinyDescription = LiteralColumn("$E(") ++ id.asColumnOf[String] ++ ")"
         override def enabled = false
         override def rawName = super.rawName.head.toString.toLowerCase + super.rawName.tail
         override def code = s"object $name extends TableQuery(tag => new $T(tag))"
+      }
+      override def ForeignKey = new ForeignKey(_){
+        override def code = {
+          val fkColumns = compound(referencingColumns.map(_.name))
+          val pkTable = tableName(referencedTable.model.name.table)
+          val pkColumns = compound(referencedColumns.map(c => s"r.${c.name}"))
+          s"""lazy val $name = foreignKey("$dbName", $fkColumns, TableQuery[$pkTable])(r => $pkColumns, onUpdate=${onUpdate}, onDelete=${onDelete})"""
+        }
       }
       override def code = {
         def input(c: Column) = s"""
@@ -93,7 +101,7 @@ def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}
 "${c.name}" -> ("${c.rawType}", ${c.model.nullable})
           """.trim
         super.code ++ Seq(s"""
-class $T(tag: Tag) extends ${TableClass.name}(tag) with ${TableClass.name}Customized
+class $T(tag: Tag) extends ${TableClass.name}(tag)
 
 class ${E}Model extends SafeModel[$E,$T]{
   val playForm = Form(
@@ -103,12 +111,12 @@ class ${E}Model extends SafeModel[$E,$T]{
   )
   def form(playForm: Form[$E]) = ${E}Form(playForm=playForm)
   def findById(id: Int)(implicit s: Session): Option[$E] =
-    ${TableValue.name}.filter(_.id === id).firstOption
+    query.filter(_.id === id).firstOption
   def update(id: Int, entity: $E)(implicit s: Session) {
-    ${TableValue.name}.filter(_.id === id).update(entity.copy(id=Some(id)))
+    query.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
   def delete(id: Int)(implicit s: Session) {
-    ${TableValue.name}.filter(_.id === id).delete
+    query.filter(_.id === id).delete
   }
 
   val labels = new super.Labels{
@@ -118,6 +126,8 @@ class ${E}Model extends SafeModel[$E,$T]{
       ${indent(columns.map(fieldLabel).mkString("\n"))}
     }
   }
+
+  override def tinyDescription(e: $E) = e.${dataColumns.head.name}
 
   val schema = Map(
     ${indent(indent(dataColumns.map(schemaColumn).mkString(",\n")))}
@@ -140,7 +150,7 @@ class ${E}Model extends SafeModel[$E,$T]{
     }
   }
 }
-object $T extends ${E}ModelCustomized
+object $T extends ${E}Model
 case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
   val model = $T
   override val html = new Html

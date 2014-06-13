@@ -32,10 +32,10 @@ abstract class CompaniesTable(tag: Tag) extends Table[Company](tag, "COMPANY") w
   val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
   
   
-  def tinyDescription = LiteralColumn("Company(") ++ id.asColumnOf[String] ++ ")"
+  def tinyDescription = name
             
 }
-class Companies(tag: Tag) extends CompaniesTable(tag) with CompaniesTableCustomized
+class Companies(tag: Tag) extends CompaniesTable(tag)
 
 class CompanyModel extends SafeModel[Company,Companies]{
   val playForm = Form(
@@ -46,12 +46,12 @@ class CompanyModel extends SafeModel[Company,Companies]{
   )
   def form(playForm: Form[Company]) = CompanyForm(playForm=playForm)
   def findById(id: Int)(implicit s: Session): Option[Company] =
-    companies.filter(_.id === id).firstOption
+    query.filter(_.id === id).firstOption
   def update(id: Int, entity: Company)(implicit s: Session) {
-    companies.filter(_.id === id).update(entity.copy(id=Some(id)))
+    query.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
   def delete(id: Int)(implicit s: Session) {
-    companies.filter(_.id === id).delete
+    query.filter(_.id === id).delete
   }
 
   val labels = new super.Labels{
@@ -62,6 +62,8 @@ class CompanyModel extends SafeModel[Company,Companies]{
   def id: String = "Id"
     }
   }
+
+  override def tinyDescription(e: Company) = e.name
 
   val schema = Map(
     "name" -> ("String", false)
@@ -84,7 +86,7 @@ class CompanyModel extends SafeModel[Company,Companies]{
     }
   }
 }
-object Companies extends CompanyModelCustomized
+object Companies extends CompanyModel
 case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Companies]{
   val model = Companies
   override val html = new Html
@@ -125,13 +127,13 @@ abstract class ComputersTable(tag: Tag) extends Table[Computer](tag, "COMPUTER")
   val id: Column[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
   
   /** Foreign key referencing companies (database name CONSTRAINT_AE) */
-  lazy val companiesTableFk = foreignKey("CONSTRAINT_AE", companyId, companies)(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
+  lazy val companiesTableFk = foreignKey("CONSTRAINT_AE", companyId, TableQuery[Companies])(r => r.id, onUpdate=ForeignKeyAction.Restrict, onDelete=ForeignKeyAction.Restrict)
   
   
-  def tinyDescription = LiteralColumn("Computer(") ++ id.asColumnOf[String] ++ ")"
+  def tinyDescription = name
             
 }
-class Computers(tag: Tag) extends ComputersTable(tag) with ComputersTableCustomized
+class Computers(tag: Tag) extends ComputersTable(tag)
 
 class ComputerModel extends SafeModel[Computer,Computers]{
   val playForm = Form(
@@ -145,12 +147,12 @@ class ComputerModel extends SafeModel[Computer,Computers]{
   )
   def form(playForm: Form[Computer]) = ComputerForm(playForm=playForm)
   def findById(id: Int)(implicit s: Session): Option[Computer] =
-    computers.filter(_.id === id).firstOption
+    query.filter(_.id === id).firstOption
   def update(id: Int, entity: Computer)(implicit s: Session) {
-    computers.filter(_.id === id).update(entity.copy(id=Some(id)))
+    query.filter(_.id === id).update(entity.copy(id=Some(id)))
   }
   def delete(id: Int)(implicit s: Session) {
-    computers.filter(_.id === id).delete
+    query.filter(_.id === id).delete
   }
 
   val labels = new super.Labels{
@@ -164,6 +166,8 @@ class ComputerModel extends SafeModel[Computer,Computers]{
   def id: String = "Id"
     }
   }
+
+  override def tinyDescription(e: Computer) = e.name
 
   val schema = Map(
     "name" -> ("String", false),
@@ -188,7 +192,7 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     }
   }
 }
-object Computers extends ComputerModelCustomized
+object Computers extends ComputerModel
 case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Computers]{
   val model = Computers
   override val html = new Html

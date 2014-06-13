@@ -68,20 +68,6 @@ trait TableBase[E] extends Table[E]{
   def id: Column[Int]
   def tinyDescription: Column[String]
 }
-trait ComputersTableCustomized extends ComputersTable{
-  override def tinyDescription = name
-}
-trait CompaniesTableCustomized extends CompaniesTable{
-  override def tinyDescription = name  
-}
-
-trait CompanyModelCustomized extends CompanyModel{
-  override def tinyDescription(e: Company) = e.name
-}
-
-trait ComputerModelCustomized extends ComputerModel{
-  override def tinyDescription(e: Computer) = e.name
-}
 
 trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E,T]{
   def query: TableQuery[T]
