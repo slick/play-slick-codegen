@@ -26,6 +26,7 @@ trait Model[E <: Entity,T]{
   def form(playForm: Form[E]): ModelForm[E,T]
 
   def findById(id: Int)(implicit s: Session): Option[E]
+  def insert(entity: E)(implicit s: Session): Unit
   def update(id: Int, entity: E)(implicit s: Session): Unit
   def delete(id: Int)(implicit s: Session): Unit
   def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%")(implicit s: Session): Page[E]

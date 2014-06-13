@@ -1,4 +1,4 @@
-@(id: Int, modelForm: ModelForm[_,_])(implicit session: play.api.db.slick.Config.driver.simple.Session)
+@(modelForm: ModelForm[_,_], id: Option[Int])(implicit session: play.api.db.slick.Config.driver.simple.Session)
 
 @import helper._
 
@@ -6,7 +6,7 @@
 
 @main {
     
-    <h1>Edit @modelForm.model.labels.singular.capitalize</h1>
+    <h1>@id.map{_ => Edit}.getOrElse{Create} @modelForm.model.labels.singular.capitalize</h1>
 
     <script type="text/javascript">
         var schema = {
@@ -22,7 +22,7 @@
     </script>
 
     
-    @form(routes.Application.write_edit(modelForm.model.labels.singular,id)) {
+    @form(routes.Application.write(modelForm.model.labels.singular,id)) {
         
         <fieldset>
             @modelForm.html.allInputs
@@ -41,11 +41,10 @@
             <input type="submit" value="Save" class="btn primary"> or 
             <a href="@routes.Application.list(modelForm.model.labels.singular)" class="btn">Cancel</a> 
         </div>
-        
     }
-    
-    @form(routes.Application.delete(modelForm.model.labels.singular, id), 'class -> "topRight") {
-        <input type="submit" value="Delete" class="btn danger">
+    @id.map{ i =>
+        @form(routes.Application.delete(modelForm.model.labels.singular, i), 'class -> "topRight") {
+            <input type="submit" value="Delete" class="btn danger">
+        }
     }
-    
 }

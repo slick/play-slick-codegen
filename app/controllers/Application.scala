@@ -18,17 +18,8 @@ import scala.util.Try
  * Manage a database of computers
  */
 object Application extends Controller { 
-  /**
-   * This result directly redirect to the application home.
-   */
-  val Home = Redirect(routes.Application.list(Computers.labels.singular, 0, 2, ""))
-  
-  // -- Actions
-
-  /**
-   * Handle default path requests, redirect to computers list
-   */  
-  def index = Action { Home }
+  def listRedirect(modelName: String) = Redirect(routes.Application.list(modelName, 0, 2, ""))
+  def index = Action { listRedirect(Computers.labels.singular) }
   
   /**
    * Display the paginated list of computers.
@@ -54,7 +45,7 @@ object Application extends Controller {
     Model.byName(modelName).typed{ model =>
       model.findById(id).map{e =>
         val modelForm = model.form(model.playForm.fill(e))
-        Ok(html.editForm(id,modelForm))
+        Ok(html.editForm(modelForm,Some(id)))
       }.getOrElse(NotFound)
     }
   }
@@ -64,18 +55,30 @@ object Application extends Controller {
    *
    * @param id Id of the computer to edit
    */
-  def write_edit(modelName: String, id: Int) = DBAction { implicit rs =>
+  def write(modelName: String, id: Option[Int]) = DBAction { implicit rs =>
     Model.byName(modelName).typed{ model =>
-      model.playForm.bindFromRequest.fold(
+      val form = model.playForm.bindFromRequest
+      form.fold(
         formWithErrors => Left(model.form(formWithErrors)),
         entity => {
-          model.update(id, entity)
+          id.map{
+            i => model.update(i, entity)
+          }.getOrElse{
+            model.insert(entity)          
+          }
           Right(model.tinyDescription(entity))
         }
-      ).fold(
-        form => BadRequest(html.editForm(id, form)),
-        tinyDescription => Home.flashing("success" -> "%s %s has been updated".format(model.labels.singular.capitalize, tinyDescription))
-      )
+      ) match {
+        case Left(form) => BadRequest(html.editForm(form, id))
+        case Right(tinyDescription) =>
+          listRedirect(model.labels.singular).flashing(
+            "success" -> "%s %s has been %s".format(
+              model.labels.singular.capitalize,
+              tinyDescription,
+              if(id.isDefined) "updated" else "created"
+            )
+          )
+      }
     }
   }
   
@@ -83,34 +86,24 @@ object Application extends Controller {
    * Display the 'new computer form'.
    */
   def create(modelName: String) = DBAction { implicit rs =>
-    Ok(html.createForm(Computers.playForm, Companies.options))
-  }
-  
-  /**
-   * Handle the 'new computer form' submission.
-   */
-  def save = DBAction { implicit rs =>
-    Computers.playForm.bindFromRequest.fold(
-      formWithErrors => BadRequest(html.createForm(formWithErrors, Companies.options)),
-      computer => {
-        Computers.insert(computer)
-        Home.flashing("success" -> "Computer %s has been created".format(computer.name))
-      }
-    )
+    Model.byName(modelName).typed{ model =>
+      Ok(html.editForm(model.form(model.playForm),None))
+    }
   }
   
   /**
    * Handle computer deletion.
    */
   def delete(modelName: String, id: Int) = DBAction { implicit rs =>
-    val model = Model.byName(modelName)
-    Try{
-      model.typed{_.delete(id)}
-    }.toOption
-     .map(_ => Home.flashing("success" -> "%s has been deleted".format(model.labels.singular.capitalize)))
-     .getOrElse(
-       Home.flashing("error" -> "%s could not be deleted. Maybe due to a constraint.".format(model.labels.singular.capitalize))
-     )
+    Model.byName(modelName).typed{ model =>
+      Try{
+        model.delete(id)
+      }.toOption
+       .map(_ => listRedirect(model.labels.singular).flashing("success" -> "%s has been deleted".format(model.labels.singular.capitalize)))
+       .getOrElse(
+         listRedirect(model.labels.singular).flashing("error" -> "%s could not be deleted. Maybe due to a constraint.".format(model.labels.singular.capitalize))
+       )
+    }
   }
 
 }

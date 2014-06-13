@@ -10,11 +10,12 @@ GET     /:modelName                 controllers.Application.list(modelName:Strin
 
 # Add computer
 GET     /:modelName/new             controllers.Application.create(modelName: String)
-POST    /computers                  controllers.Application.save
 
 # Edit existing computer
 GET     /:modelName/:id/edit        controllers.Application.edit(modelName:String, id:Int)
-POST    /:modelName/:id/edit        controllers.Application.write_edit(modelName:String, id:Int)
+
+# Write computer (field 'id' in payload identifies update instead of create)
+POST    /:modelName                 controllers.Application.write(modelName:String, id:Option[Int] ?= None)
 
 # Delete a computer
 POST    /:modelName/:id/delete      controllers.Application.delete(modelName:String, id:Int)
