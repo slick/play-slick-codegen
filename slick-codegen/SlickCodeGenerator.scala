@@ -34,7 +34,7 @@ import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
-  def byName: Map[String,SafeModel[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
+  def byName: Map[String,Model[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
     ${indent(indent(tables.map(t => "\"" + t.EntityType.name.toLowerCase + "\" -> " + tableName(t.model.name.table) ).mkString(",\n")))}
   )
 }
@@ -119,7 +119,7 @@ def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}
         super.code ++ Seq(s"""
 class $T(tag: Tag) extends ${TableClass.name}(tag)
 
-class ${E}Model extends SafeModel[$E,$T]{
+class ${E}Model extends Model[$E,$T]{
   val playForm = Form(
     mapping(
       ${indent(indent(indent(columns.map(formField).mkString(",\n"))))}
@@ -143,12 +143,12 @@ class ${E}Model extends SafeModel[$E,$T]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
     ${indent(indent(foreignKeys.map(referencedModel).mkString(",\n")))}
   )
 
 
-  def referencedModelsAndIds(entities: Seq[$E])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+  def referencedModelsAndIds(entities: Seq[$E])(implicit session: Session): Map[Model[_ <: Entity,_],Map[Int,Option[(Int,String)]]] = {
     Map(
       ${indent(indent(indent(foreignKeys.map(modelAndEntities).mkString(",\n"))))}
     )

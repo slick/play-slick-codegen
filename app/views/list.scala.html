@@ -1,4 +1,4 @@
-@(model: Model[_ <: Entity], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
+@(model: Model[_ <: Entity,_], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
 
 @****************************************
 * Helper generating navigation links    *

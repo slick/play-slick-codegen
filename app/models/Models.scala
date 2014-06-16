@@ -15,7 +15,7 @@ import auto_generated._
 trait Entity{
   def id: Option[Int]
 }
-trait Model[E <: Entity]{
+trait Model[E <: Entity,T <: TableBase[E]]{
   def playForm: Form[E]
   trait Labels{
     def singular: String
@@ -26,16 +26,13 @@ trait Model[E <: Entity]{
   def form(playForm: Form[E]): ModelForm[E]
 
   def findById(id: Int)(implicit s: Session): Option[E]
-  def insert(entity: E)(implicit s: Session): Unit
   def update(id: Int, entity: E)(implicit s: Session): Unit
   def delete(id: Int)(implicit s: Session): Unit
-  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%")(implicit s: Session): Page[E]
 
   def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
-  def referencedModels: Map[String,Model[_ <: Entity]]
-  def referencedModelsAndIds(entities: Seq[E])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]]
-  def options(implicit s: Session): Seq[(String, String)]
+  def referencedModels: Map[String,Model[_ <: Entity,_]]
+  def referencedModelsAndIds(entities: Seq[E])(implicit session: Session): Map[Model[_ <: Entity,_],Map[Int,Option[(Int,String)]]]
 
   /**
     * This makes up for a limitation of Scala's type inferencer.
@@ -44,36 +41,13 @@ trait Model[E <: Entity]{
     * E and T. Going through this function allows the type inferencer
     * to at least know about the identity of E and T.
     */
-  def typed[R](body: Model[E] => R) = body(this)
+  def typed[R](body: Model[E,_ <: TableBase[E]] => R) = body(this)
   trait Html{
     def headings: Seq[String]
     def cells(e: E): Seq[java.io.Serializable]
   }
   def html: Html
-}
 
-trait ModelForm[E <: Entity]{
-  def playForm: Form[E]
-  def model: Model[E]
-  trait Html{
-    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
-  }
-  def html: Html
-}
-
-case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
-  lazy val prev = Option(page - 1).filter(_ >= 0)
-  lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
-}
-object companies extends TableQuery(tag => new Companies(tag))
-object computers extends TableQuery(tag => new Computers(tag))
-
-trait TableBase[E] extends Table[E]{
-  def id: Column[Int]
-  def tinyDescription: Column[String]
-}
-
-trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E]{
   def query: TableQuery[T]
 
   /**
@@ -107,4 +81,25 @@ trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E]{
   def insert(entity: E)(implicit s: Session) {
     query.insert(entity)
   }
+}
+
+trait ModelForm[E <: Entity]{
+  def playForm: Form[E]
+  def model: Model[E,_]
+  trait Html{
+    def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
+  }
+  def html: Html
+}
+
+case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
+  lazy val prev = Option(page - 1).filter(_ >= 0)
+  lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
+}
+object companies extends TableQuery(tag => new Companies(tag))
+object computers extends TableQuery(tag => new Computers(tag))
+
+trait TableBase[E] extends Table[E]{
+  def id: Column[Int]
+  def tinyDescription: Column[String]
 }

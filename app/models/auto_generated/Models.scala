@@ -10,7 +10,7 @@ import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
-  def byName: Map[String,SafeModel[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
+  def byName: Map[String,Model[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
     "company" -> Companies,
     "computer" -> Computers
   )
@@ -37,7 +37,7 @@ abstract class CompaniesTable(tag: Tag) extends Table[Company](tag, "COMPANY") w
 }
 class Companies(tag: Tag) extends CompaniesTable(tag)
 
-class CompanyModel extends SafeModel[Company,Companies]{
+class CompanyModel extends Model[Company,Companies]{
   val playForm = Form(
     mapping(
       "name" -> nonEmptyText,
@@ -63,12 +63,12 @@ class CompanyModel extends SafeModel[Company,Companies]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
     
   )
 
 
-  def referencedModelsAndIds(entities: Seq[Company])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+  def referencedModelsAndIds(entities: Seq[Company])(implicit session: Session): Map[Model[_ <: Entity,_],Map[Int,Option[(Int,String)]]] = {
     Map(
       
     )
@@ -147,7 +147,7 @@ abstract class ComputersTable(tag: Tag) extends Table[Computer](tag, "COMPUTER")
 }
 class Computers(tag: Tag) extends ComputersTable(tag)
 
-class ComputerModel extends SafeModel[Computer,Computers]{
+class ComputerModel extends Model[Computer,Computers]{
   val playForm = Form(
     mapping(
       "name" -> nonEmptyText,
@@ -179,12 +179,12 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
     "companyId" -> Companies
   )
 
 
-  def referencedModelsAndIds(entities: Seq[Computer])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+  def referencedModelsAndIds(entities: Seq[Computer])(implicit session: Session): Map[Model[_ <: Entity,_],Map[Int,Option[(Int,String)]]] = {
     Map(
       {
         val rEntities = Companies.query.filter(
