@@ -10,7 +10,7 @@ import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
-  def byName/*: Map[String,Model[_,_]]*/ = Map(
+  def byName: Map[String,SafeModel[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
     "company" -> Companies,
     "computer" -> Computers
   )
@@ -63,9 +63,18 @@ class CompanyModel extends SafeModel[Company,Companies]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
     
   )
+
+
+  def referencedModelsAndIds(entities: Seq[Company])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+    Map(
+      
+    )
+  }
+
+
   override def tinyDescription(e: Company) = e.name
 
   val schema = Map(
@@ -90,7 +99,7 @@ class CompanyModel extends SafeModel[Company,Companies]{
   }
 }
 object Companies extends CompanyModel
-case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company,Companies]{
+case class CompanyForm(playForm: Form[Company]) extends ModelForm[Company]{
   val model = Companies
   override val html = new Html
   class Html extends super.Html{
@@ -170,9 +179,25 @@ class ComputerModel extends SafeModel[Computer,Computers]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
     "companyId" -> Companies
   )
+
+
+  def referencedModelsAndIds(entities: Seq[Computer])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+    Map(
+      {
+        val rEntities = Companies.query.filter(
+          _.id inSet entities.flatMap(_.companyId).distinct
+        ).map(r => r.id -> (r.id -> r.tinyDescription)).run.toMap
+        Companies -> entities.map( e =>
+          e.id.get -> e.companyId.flatMap(rEntities.get)
+        ).toMap
+      }
+    )
+  }
+
+
   override def tinyDescription(e: Computer) = e.name
 
   val schema = Map(
@@ -199,7 +224,7 @@ class ComputerModel extends SafeModel[Computer,Computers]{
   }
 }
 object Computers extends ComputerModel
-case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer,Computers]{
+case class ComputerForm(playForm: Form[Computer]) extends ModelForm[Computer]{
   val model = Computers
   override val html = new Html
   class Html extends super.Html{

@@ -34,7 +34,7 @@ import play.api.data.format.Formats
 
 object Model{
   def all = byName.values
-  def byName/*: Map[String,Model[_,_]]*/ = Map(
+  def byName: Map[String,SafeModel[_ <: Entity,_ <: TableBase[_ <: Entity]]] = Map(
     ${indent(indent(tables.map(t => "\"" + t.EntityType.name.toLowerCase + "\" -> " + tableName(t.model.name.table) ).mkString(",\n")))}
   )
 }
@@ -105,6 +105,17 @@ def ${c.name}: String = "${c.model.name.replace("_"," ").toLowerCase.capitalize}
         def referencedModel(fk: ForeignKey) = s"""
 "${fk.referencingColumns.head.name}" -> ${tableName(fk.referencedTable.model.name.table)}
           """.trim
+        def modelAndEntities(fk: ForeignKey) = s"""
+{
+  val rEntities = ${tableName(fk.referencedTable.model.name.table)}.query.filter(
+    _.${fk.referencedColumns.head.name} inSet entities.flatMap(_.${fk.referencingColumns.head.name}).distinct
+  ).map(r => r.${fk.referencedColumns.head.name} -> (r.id -> r.tinyDescription)).run.toMap
+  ${tableName(fk.referencedTable.model.name.table)} -> entities.map( e =>
+    e.id.get -> e.${fk.referencingColumns.head.name}.flatMap(rEntities.get)
+  ).toMap
+}
+          """.trim
+
         super.code ++ Seq(s"""
 class $T(tag: Tag) extends ${TableClass.name}(tag)
 
@@ -132,9 +143,18 @@ class ${E}Model extends SafeModel[$E,$T]{
     }
   }
 
-  val referencedModels: Map[String,Model[_ <: Entity,_]] = Map(
+  val referencedModels: Map[String,Model[_ <: Entity]] = Map(
     ${indent(indent(foreignKeys.map(referencedModel).mkString(",\n")))}
   )
+
+
+  def referencedModelsAndIds(entities: Seq[$E])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]] = {
+    Map(
+      ${indent(indent(indent(foreignKeys.map(modelAndEntities).mkString(",\n"))))}
+    )
+  }
+
+
   override def tinyDescription(e: $E) = e.${dataColumns.head.name}
 
   val schema = Map(
@@ -159,7 +179,7 @@ class ${E}Model extends SafeModel[$E,$T]{
   }
 }
 object $T extends ${E}Model
-case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E,$T]{
+case class ${E}Form(playForm: Form[$E]) extends ModelForm[$E]{
   val model = $T
   override val html = new Html
   class Html extends super.Html{

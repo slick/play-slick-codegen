@@ -15,7 +15,7 @@ import auto_generated._
 trait Entity{
   def id: Option[Int]
 }
-trait Model[E <: Entity,T]{
+trait Model[E <: Entity]{
   def playForm: Form[E]
   trait Labels{
     def singular: String
@@ -23,7 +23,7 @@ trait Model[E <: Entity,T]{
   }
   def labels: Labels
   def schema: Map[String,(String,Boolean)]
-  def form(playForm: Form[E]): ModelForm[E,T]
+  def form(playForm: Form[E]): ModelForm[E]
 
   def findById(id: Int)(implicit s: Session): Option[E]
   def insert(entity: E)(implicit s: Session): Unit
@@ -33,7 +33,8 @@ trait Model[E <: Entity,T]{
 
   def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
-  def referencedModels: Map[String,Model[_ <: Entity,_]]
+  def referencedModels: Map[String,Model[_ <: Entity]]
+  def referencedModelsAndIds(entities: Seq[E])(implicit session: Session): Map[Model[_ <: Entity],Map[Int,Option[(Int,String)]]]
   def options(implicit s: Session): Seq[(String, String)]
 
   /**
@@ -43,7 +44,7 @@ trait Model[E <: Entity,T]{
     * E and T. Going through this function allows the type inferencer
     * to at least know about the identity of E and T.
     */
-  def typed[R](body: Model[E,T] => R) = body(this)
+  def typed[R](body: Model[E] => R) = body(this)
   trait Html{
     def headings: Seq[String]
     def cells(e: E): Seq[java.io.Serializable]
@@ -51,9 +52,9 @@ trait Model[E <: Entity,T]{
   def html: Html
 }
 
-trait ModelForm[E <: Entity,T]{
+trait ModelForm[E <: Entity]{
   def playForm: Form[E]
-  def model: Model[E,T]
+  def model: Model[E]
   trait Html{
     def allInputs(implicit handler: FieldConstructor, lang: Lang): Seq[play.twirl.api.HtmlFormat.Appendable]
   }
@@ -72,7 +73,7 @@ trait TableBase[E] extends Table[E]{
   def tinyDescription: Column[String]
 }
 
-trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E,T]{
+trait SafeModel[E <: Entity,T <: TableBase[E]] extends Model[E]{
   def query: TableQuery[T]
 
   /**

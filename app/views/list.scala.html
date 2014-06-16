@@ -1,4 +1,4 @@
-@(model: Model[_ <: Entity,_], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
+@(model: Model[_ <: Entity], page: Int, currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, session: play.api.db.slick.Config.driver.simple.Session)
 
 @****************************************
 * Helper generating navigation links    *
@@ -60,35 +60,26 @@
         <table class="zebra-striped">
             <thead>
                 <tr>
-                    @model.html.headings.map{ h => <th> @h </th> }
-                    @{model match {
-                        case _:Computers.type => <th>Company</th>
-                        case _ => None
-                    }}
+                    @m.html.headings.map{ h => <th> @h </th> }
+                    @m.referencedModels.values.map(_.labels.singular.capitalize).map{ label =>
+                        <th>@label</th>
+                    }
                 </tr>
             </thead>
             <tbody>
                 @defining((
-                    model match {
-                        case _:Computers.type => {
-                            companies.filter(_.id inSet entities.asInstanceOf[Seq[Computer]].flatMap(_.companyId).distinct).list.map(co => co.id -> co).toMap
-                        }
-                        case _ => None
-                    }
-                )){ extraData =>
+                    m.referencedModelsAndIds(entities)
+                )){ referencedModelsAndIds =>
                     @entities.map{ entity =>
                         <tr>
-                            <td><a href=@routes.Application.edit(model.labels.singular,entity.id.get).url>@m.html.cells(entity).head</a></td>
+                            <td><a href=@routes.Application.edit(m.labels.singular,entity.id.get).url>@m.html.cells(entity).head</a></td>
                             @m.html.cells(entity).tail.map{ cell => <td>@cell</td> }
-                            @entity match {
-                                case computer:Computer => {
-                                    <td>
-                                        @extraData.asInstanceOf[Map[Option[Int],Company]].get(computer.companyId).map{ co =>
-                                            <a href=@routes.Application.edit("company",co.id.get)>@co.name</a>
-                                        }.getOrElse { <em>-</em> }
-                                    </td>
-                                }
-                                case _ => {}
+                            @referencedModelsAndIds.map{ case (referencedModel,referencedEntities) =>
+                                <td>
+                                    @referencedEntities(entity.id.get).map{ case (rid,tinyDescription) =>
+                                        <a href=@routes.Application.edit(referencedModel.labels.singular,rid)>@tinyDescription</a>
+                                    }.getOrElse { <em>-</em> }
+                                </td>                                
                             }
                         </tr>
                     }
