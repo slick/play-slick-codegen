@@ -27,7 +27,7 @@ object mdeBuild extends Build {
     id="codegen",
     base=file("slick-codegen"),
     settings = sharedSettings
-  )
+  ).settings(resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/")
   
   // shared sbt config between main project and codegen project
   val sharedSettings = Seq(
