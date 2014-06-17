@@ -1,7 +1,43 @@
-This is a classic CRUD application, backed by a JDBC database. It demonstrates:
+This Play app demonstrates fully automatic scaffolding from the data model using code-generation for:
+------------------------------------------------------------------------------------------
+- data model case classes
+- Slick Tables
+- Slick CRUD with pre-compiled queries
+- Play form bindings / validations
+- Play html views / forms
+- JavaScript form validation
+- Many-to-one relationships in forms
 
-- Accessing a JDBC database, using Slick.
-- Achieving, table pagination and CRUD forms.
-- Integrating with a CSS framework (Twitter Bootstrap ).
+This also demos (some unrelated to codegen):
+------------------------------------------------------------
+- multi-project, customized Slick codegen sbt build setup with Play
+- Going from dynamic to static: Unified controllers serving all models at once.
+- A unified edit/insert template and controller.
+- pre-compiled Slick queries
 
-Twitter Bootstrap requires a different form layout to the default one that the Play 2.0 form helper generates, so this application also provides an example of integrating a custom form input constructor.
+Philosophy:
+------------------
+- Use codegen (only!) where Scala's abstraction capabilities end.
+- Write everything you can abstract in Scala by hand (unless type system limitations make it infeasible).
+- Use code-gen as a refactoring technique to avoid logical duplication. Don't use it blindly, but focused.
+- Provide excellent interop between generated code and hand-written code.
+- Generate readable(!) code that is well formatted and has useful Scaladoc where applicable.
+- Generate what makes sense and is useful to your team. Make a wise decision. You can take it all the way to the frontend. You don't have to!
+
+Usage:
+------------------
+- sbt run
+- enable the PERSON table in schema.sql
+- stop the app (ctrl+c)
+- sbt run
+- see person appear in the GUI
+
+As of now this lacks (but should really contain):
+------------------------------------------------------------
+- being an activator template
+- demo of using twirl for template-based codegen instead of string interpolation based codegen
+- demo of extra meta data driving code generation, additional to just the db schema
+- demo of inheritance-based interop between generated and hand-written code
+- demo of hand-written, model-specific views/use cases co-exist with the generated ones
+- demo of enabling/disabling interfacing with hand-written code
+- more cleanup / refactoring of the slick queries in the model
