@@ -126,14 +126,6 @@ class ${E}Model extends Model[$E,$T]{
     )($E.apply)($E.unapply)
   )
   def form(playForm: Form[$E]) = ${E}Form(playForm=playForm)
-  def findById(id: Int)(implicit s: Session): Option[$E] =
-    query.filter(_.id === id).firstOption
-  def update(id: Int, entity: $E)(implicit s: Session) {
-    query.filter(_.id === id).update(entity.copy(id=Some(id)))
-  }
-  def delete(id: Int)(implicit s: Session) {
-    query.filter(_.id === id).delete
-  }
 
   val labels = new super.Labels{
     def singular = "$E".toLowerCase

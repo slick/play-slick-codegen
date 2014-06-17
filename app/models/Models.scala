@@ -15,25 +15,53 @@ import auto_generated._
 trait Entity{
   def id: Option[Int]
 }
-trait Model[E <: Entity,T <: TableBase[E]]{
-  def playForm: Form[E]
+abstract class Model[E <: Entity,T <: TableBase[E]]{
+  def query: TableQuery[T]
+
+  def referencedModels: Map[String,Model[_ <: Entity,_]]
+
+  // GUI related stuff
   trait Labels{
     def singular: String
     def plural: String
   }
   def labels: Labels
-  def schema: Map[String,(String,Boolean)]
-  def form(playForm: Form[E]): ModelForm[E]
-
-  def findById(id: Int)(implicit s: Session): Option[E]
-  def update(id: Int, entity: E)(implicit s: Session): Unit
-  def delete(id: Int)(implicit s: Session): Unit
 
   def tinyDescription(e: E): String = labels.singular.capitalize + s"(${e.id})"
 
-  def referencedModels: Map[String,Model[_ <: Entity,_]]
+  /** model -> map(entity id -> option(related entity id -> entity tiny description))*/
   def referencedModelsAndIds(entities: Seq[E])(implicit session: Session): Map[Model[_ <: Entity,_],Map[Int,Option[(Int,String)]]]
 
+  trait Html{
+    def headings: Seq[String]
+    def cells(e: E): Seq[java.io.Serializable]
+  }
+  def html: Html
+
+  // FORM stuff
+  def form(playForm: Form[E]): ModelForm[E]
+  def playForm: Form[E]
+  /** column name -> (type, required) */
+  def schema: Map[String,(String,Boolean)]
+
+  // CRUD
+
+  /** caches compiled sql */
+  private val byIdCompiled = Compiled{ (id: Column[Int]) => query.filter(_.id === id) }
+  def findById(id: Int)(implicit s: Session): Option[E] = byIdCompiled(id).firstOption
+  def update(entity: E)(implicit s: Session): Unit      = entity.id.map{ id =>
+    byIdCompiled(id).update(entity)
+  }.getOrElse{
+    throw new Exception("cannot update entity without id")
+  }
+  def delete(id: Int)(implicit s: Session): Unit        = byIdCompiled(id).delete
+
+  /** caches compiled sql */
+  private lazy val insertInvoker = query.insertInvoker
+  /** pre-compiled insert */
+  def insert(entity: E)(implicit s: Session): Unit = insertInvoker.insert(entity)
+
+  // OTHER
   /**
     * This makes up for a limitation of Scala's type inferencer.
     * It allows to typecheck and evaluate a block of code with
@@ -42,20 +70,19 @@ trait Model[E <: Entity,T <: TableBase[E]]{
     * to at least know about the identity of E and T.
     */
   def typed[R](body: Model[E,_ <: TableBase[E]] => R) = body(this)
-  trait Html{
-    def headings: Seq[String]
-    def cells(e: E): Seq[java.io.Serializable]
+
+  // USE CASES
+
+  /** caches compiled sql */
+  private lazy val optionsCompiled = Compiled{
+    query.map(r => r.id.asColumnOf[String] -> r.tinyDescription).sortBy(_._2)
   }
-  def html: Html
-
-  def query: TableQuery[T]
-
   /**
    * Construct the Map[String,String] needed to fill a select options set
    */
-  def options(implicit s: Session): Seq[(String, String)] =
-    query.map(r => r.id.asColumnOf[String] -> r.tinyDescription).sortBy(_._2).run
+  def options(implicit s: Session): Seq[(String, String)] = optionsCompiled.run
 
+  
   def count(implicit s: Session): Int = query.length.run
   def count(filter: String)(implicit s: Session): Int =
     query.filter(_.tinyDescription.toLowerCase like filter.toLowerCase).length.run
@@ -76,10 +103,6 @@ trait Model[E <: Entity,T <: TableBase[E]]{
     val result = q.list
 
     Page(result, page, offset, totalRows)
-  }
-
-  def insert(entity: E)(implicit s: Session) {
-    query.insert(entity)
   }
 }
 

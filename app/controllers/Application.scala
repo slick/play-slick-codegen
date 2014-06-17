@@ -61,8 +61,14 @@ object Application extends Controller {
       form.fold(
         formWithErrors => Left(model.form(formWithErrors)),
         entity => {
-          id.map{
-            i => model.update(i, entity)
+          entity.id.map{ _ =>
+            id.map{i =>
+              model.update(
+                form.bind(form.data + ("id" -> i.toString)).get
+              )
+            }.getOrElse{
+              throw new Exception("expected id to be passed")
+            }
           }.getOrElse{
             model.insert(entity)          
           }

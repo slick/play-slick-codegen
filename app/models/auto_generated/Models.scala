@@ -45,14 +45,6 @@ class CompanyModel extends Model[Company,Companies]{
     )(Company.apply)(Company.unapply)
   )
   def form(playForm: Form[Company]) = CompanyForm(playForm=playForm)
-  def findById(id: Int)(implicit s: Session): Option[Company] =
-    query.filter(_.id === id).firstOption
-  def update(id: Int, entity: Company)(implicit s: Session) {
-    query.filter(_.id === id).update(entity.copy(id=Some(id)))
-  }
-  def delete(id: Int)(implicit s: Session) {
-    query.filter(_.id === id).delete
-  }
 
   val labels = new super.Labels{
     def singular = "Company".toLowerCase
@@ -158,14 +150,6 @@ class ComputerModel extends Model[Computer,Computers]{
     )(Computer.apply)(Computer.unapply)
   )
   def form(playForm: Form[Computer]) = ComputerForm(playForm=playForm)
-  def findById(id: Int)(implicit s: Session): Option[Computer] =
-    query.filter(_.id === id).firstOption
-  def update(id: Int, entity: Computer)(implicit s: Session) {
-    query.filter(_.id === id).update(entity.copy(id=Some(id)))
-  }
-  def delete(id: Int)(implicit s: Session) {
-    query.filter(_.id === id).delete
-  }
 
   val labels = new super.Labels{
     def singular = "Computer".toLowerCase
