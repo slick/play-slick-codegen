@@ -10,15 +10,20 @@
 
     <script type="text/javascript">
         var schema = {
-            @modelForm.model.schema.map{ case (column,(tpe,nullable)) =>
-                "@column": {
-                    "required" : @if(nullable){ false } else { true }
-                    "type" : @tpe
+            @Html(modelForm.model.schema.map{ case (column,(tpe,nullable)) =>
+                s"""
+                "$column": {
+                    "required" : ${if(nullable){ "false" } else { "true" }},
+                    "type" : "$tpe"
                 }
-            }
+                """.trim
+            }.mkString(",\n"))
         }
-
-        // TODO: add jQuery validation code here
+        validate(schema, function(dom, value, error) {
+            console.log(dom)
+            dom.parents(".clearfix").toggleClass("error", !!error)
+            !error || console.log("ERROR::", error.message)
+        });
     </script>
 
     
